@@ -12,7 +12,7 @@
     "tabs",
     "scripting",
     "activeTab",
-    "fileSystemProvider"
+    "unlimitedStorage"
   ],
 
   "action": {},
