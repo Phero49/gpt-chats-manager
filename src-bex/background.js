@@ -134,7 +134,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
   bridge.on('storage.get', ({ data, respond }) => {
     const { key, all, date } = data
-
+    chrome.storage.local.remove('chats')
     if (key === null) {
       chrome.storage.local.get(null, items => {
         // Group the values up into an array to take advantage of the bridge's chunk splitting.
@@ -142,10 +142,11 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
         const today = new Date().getDate()
         var chats = []
 
+
         for (const chat of Object.values(items)) {
           const chatDate = new Date(chat.date).getDate()
           console.log(date,)
-          if (date === chatDate) {
+          if (date === chatDate || all) {
             chats.push(chat)
           }
         }
@@ -166,10 +167,166 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
   bridge.on('storage.set', ({ data, respond }) => {
     console.log(data)
-    chrome.storage.local.set({ [data.key]: data.value }, () => {
+    chrome.storage.local.set({ [data.key]: data.data }, () => {
       respond()
       console.log("saved")
     })
+  })
+
+  bridge.on('createCollection', async ({ data, respond }) => {
+    const { colName } = data
+    const date = Date.now()
+    //get collections
+    var col = await chrome.storage.local.get('collections')
+    const colls = col['collections']
+    //check if it not empty
+    console.log(colls, colName)
+    if (Object.keys(colls).length > 0) {
+      const getName = colls[colName]
+      //check if name already exist
+      if (getName == undefined) {
+
+        colls[colName] = { date: date, cols: [] }
+        await chrome.storage.local.set(col)
+
+        respond({ error: false, msg: "ok" })
+      }
+      else {
+
+        respond({ error: true, msg: "name already exist" })
+      }
+
+
+    }
+    else {
+
+      const collection = {}
+      collection[colName] = { date: date, cols: [] }
+
+      await chrome.storage.local.set({ ['collections']: collection })
+      respond({ error: false, msg: "ok" })
+
+    }
+  })
+
+  bridge.on('getCollections', async ({ data, respond }) => {
+    const { all } = data
+    var col = await chrome.storage.local.get('collections')
+    const colls = col['collections']
+
+    if (!all) {
+      const keys = Object.keys(colls).slice(0, 3)
+      respond(keys)
+    }
+    else {
+
+      const keys = Object.keys(colls)
+      respond(keys)
+
+    }
+  })
+
+  bridge.on('addTocollection', async ({ data, respond }) => {
+    const { colName } = data
+    const { colItem } = data
+    const date = new Date.now()
+    //get collections
+    const col = await chrome.storage.local.get('collections')
+    //check if it not empty
+    if (Object.keys(col).length > 0) {
+      const getName = col[colName]
+      //check if name already exist
+      if (getName == undefined) {
+
+        col[colItem].unshift({ item: colName, date: date })
+        respond({ error: false, msg: "ok" })
+      }
+      else {
+
+        respond({ error: true, msg: "name already exist" })
+      }
+
+
+    }
+    else {
+
+      const collection = {}
+      collection[colName] = [{ item: colName, date: date }]
+
+      chrome.storage.local.set({ ['collection']: collection })
+
+    }
+  })
+
+  bridge.on("getChats", ({ data, respond }) => {
+    const { key, all, date } = data
+
+    // chrome.storage.local.remove('chats')
+
+    chrome.storage.local.get("chats", (items) => {
+
+      const keys = Object.keys(items['chats']).slice(0, 3)
+      const chatData = {}
+
+      keys.forEach((key) => {
+        chatData[key] = items['chats'][key]
+
+      })
+
+      console.log(chatData)
+
+      respond(chatData)
+    })
+  })
+  bridge.on("saveChats", ({ data, respond }) => {
+    // console.log(data)
+
+    var date1 = data.date
+    const key = data.url
+    const date = new Date(date1).toLocaleDateString()
+    console.log(date, data, "fffffffffffffff")
+
+    // chrome.storage.local.remove("chats")
+    if (key != undefined) {
+      chrome.storage.local.get("chats", items => {
+        console.log(items)
+        if (Object.values(items).length > 0) {
+          //check if chats are empty  
+          const getChatByDate = Object.keys(items['chats']).includes(date)
+
+          console.log(getChatByDate, Object.keys(items['chats']), date)
+          if (getChatByDate) {
+            //check if there are chats for the data
+
+            items['chats'][date][key] = data
+            //  items['chats'][date] = { ...{ key: key, data: data }, ...items['chats'][date] }
+            chrome.storage.local.set(items)
+            console.log(items, "items2")
+          }
+          else {
+            //if no chats for the date
+
+            items['chats'][date] = {}
+            items['chats'][date][key] = data
+            console.log(items, 'items')
+            chrome.storage.local.set(items)
+
+          }
+
+
+        }
+        else {
+          const chats = { "chats": {} };
+          chats['chats'][date] = {};
+          chats['chats'][date][key] = data
+          chrome.storage.local.set(chats);
+          console.log(chats, "no chtas")
+        }
+        respond(true)
+      })
+    }
+
+
   })
   // Usage:
   // await bridge.send('storage.set', { key: 'someKey', value: 'someValue' })
