@@ -7,7 +7,9 @@ const routes = [
       { path: '', component: () => import('pages/IndexPage.vue') },
       { path: '/exportDocs', component: () => import('pages/EXportDocs.vue') },
 
-      { path: '/help', component: () => import('pages/HelpPage.vue') }
+      { path: '/help', component: () => import('pages/HelpPage.vue') },
+      { path: '/chat-collections', component: () => import('pages/CollectionsPage.vue') },
+      { path: '/chat-collection/:collection', component: () => import('pages/ViewChatCollection.vue') }
     ]
   },
 

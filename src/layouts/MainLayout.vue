@@ -130,7 +130,9 @@ import { defineComponent, ref, onMounted } from "vue";
 import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { useRouter } from "vue-router";
+import { makeEven } from "src/js/getIds";
 import { docStore } from "../stores/curentDocStore";
+import { parse } from "postcss";
 const store = docStore();
 const router = useRouter();
 const $q = useQuasar();
@@ -154,26 +156,16 @@ const date = ref(today());
 console.log(date.value);
 
 const chatContents = store.contents;
-const selectedItem = ref(1);
-function makeEven(number) {
-  if (number % 2 === 0 || number === 0) {
-    return number;
-  } else {
-    // if the number is odd, add 1 to make it odd
+const selectedItem = ref(0);
 
-    return number + 1;
-  }
-}
 function scrollTo(index) {
   selectedItem.value = index;
   const element = document.querySelector(`#group-${makeEven(index)}`);
   element.scrollIntoView({ behavior: "smooth", block: "start" });
-  element.classList.add("bg-blue-2");
-  element.classList.add("q-pa-md");
+  element.classList.add("bg-yellow-4");
 
   setTimeout(() => {
-    element.classList.remove("bg-blue-2");
-    element.classList.remove("q-pa-md");
+    element.classList.remove("bg-yellow-4");
   }, 3000);
 }
 
@@ -233,23 +225,26 @@ function onDrop(index, e) {
     // Get the element to replace
 
     const draggedGroup = children[draggedItemIndex.value];
-
-    console.log(draggedGroup, "okay");
+    const id1 = draggedGroup.getAttribute("id");
 
     // Get the element to replace with
     const replaceOn = children[index];
-    console.log(replaceOn);
+    const dropedId = replaceOn.getAttribute("id");
+    const dropedIdInt = parseInt(dropedId.split("-")[1]);
+    console.log(dropedId, id1);
+
     // Replace the elements by inserting them before/after each other
 
     const insertedNode = parentNode.insertBefore(draggedGroup, replaceOn);
 
-    insertedNode.classList.add("bg-blue-2");
-    insertedNode.classList.add("q-pa-md");
-
+    scrollTo(draggedItemIndex.value);
     setTimeout(() => {
-      insertedNode.classList.remove("bg-blue-2");
-      insertedNode.classList.remove("q-pa-md");
-    }, 2000);
+      for (let i = 0; i < children.length; i++) {
+        const element = insertedNode.parentElement.children[i];
+        element.id = `group-${makeEven(i)}`;
+        console.log(element, element.id);
+      }
+    }, 1000);
     //console.log(insertedNode, replaceOn, index);
     // parentNode.insertBefore(draggedGroup, insertedNode);
     // parentNode.insertBefore(draggedGroup, cc);

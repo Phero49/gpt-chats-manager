@@ -3,17 +3,8 @@
 
 
 import { bexContent } from 'quasar/wrappers'
-window.addEventListener("getchatgptDom", function (event) {
-  // Check if the event is the one you're expecting
-  console.log("oooooooo")
-  if (event.data.type === "getchatgptDom") {
-    // Access the data in the event
-    const elements = event.data.data;
-    // Do something with the elements
-    console.log(elements);
-  }
-});
-console.log("mycont")
+
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   // Check if the request is the one you're expecting
   console.log("fhbhjhbcjhchjcshgh")
@@ -26,6 +17,46 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 });
 
 export default bexContent((bridge) => {
+  bridge.on('i', ({ data, respond }) => {
+    console.log('recived')
+    const observer = new MutationObserver((mutations, observe) => {
+
+      for (const mutation of mutations) {
+        const { target } = mutation
+        const getbtn = target.querySelector('div>.justify-center>button.relative')
+        console.log(getbtn)
+        if (getbtn != null) {
+          if (getbtn.parentElement != null || getbtn.parentElement != undefined) {
+            observe.disconnect()
+            let btn = `<button id="exportchat" class="btn ml-4 relative text-green btn-neutral border-0 md:border">
+        Export chat
+      </button>`
+            const parser = new DOMParser()
+            const parsedEl = parser.parseFromString(btn, 'text/html')
+            getbtn.parentElement.appendChild(parsedEl.querySelector("button"))
+            console.log(getbtn.parentElement)
+            document.querySelector("#exportchat").addEventListener('click', () => {
+              getChat()
+              console.log('export')
+            })
+
+            break
+          }
+
+        }
+
+
+      }
+
+
+
+    })
+    // observer.observe(document.body, { childList: true, subtree: true, })
+
+  }
+
+  )
+
   window.addEventListener("getchatgptDom", function (event) {
     // Check if the event is the one you're expecting
     console.log("oooooooo")

@@ -303,36 +303,36 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
 
   bridge.on("saveChats", ({ data, respond }) => {
-    // console.log(data)
 
+    //geting key and date from the saved item
     var date1 = data.date
-    const key = data.url
-    const date = new Date(date1).toLocaleDateString()
-    console.log(date, data, "fffffffffffffff")
+    const url = data.url
 
-    // chrome.storage.local.remove("chats")
+    const date = new Date(date1).toLocaleDateString()
+
+
     if (key != undefined) {
       chrome.storage.local.get("chats", items => {
-        console.log(items)
+
         if (Object.values(items).length > 0) {
           //check if chats are empty  
+
           const getChatByDate = Object.keys(items['chats']).includes(date)
 
-          console.log(getChatByDate, Object.keys(items['chats']), date)
           if (getChatByDate) {
-            //check if there are chats for the data
+            //check if there are chats for the dete
 
-            items['chats'][date][key] = data
+            items['chats'][date][url] = data
             //  items['chats'][date] = { ...{ key: key, data: data }, ...items['chats'][date] }
             chrome.storage.local.set(items)
-            console.log(items, "items2")
+
           }
           else {
             //if no chats for the date
 
             items['chats'][date] = {}
-            items['chats'][date][key] = data
-            console.log(items, 'items')
+            items['chats'][date][url] = data
+
             chrome.storage.local.set(items)
 
           }
@@ -348,6 +348,9 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
         }
         respond(true)
       })
+    }
+    else {
+      respond(false)
     }
 
 
