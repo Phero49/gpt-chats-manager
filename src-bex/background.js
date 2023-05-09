@@ -180,8 +180,9 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     var col = await chrome.storage.local.get('collections')
     const colls = col['collections']
     //check if it not empty
+
     console.log(colls, colName)
-    if (Object.keys(colls).length > 0) {
+    if (Object.values(col).length > 0) {
       const getName = colls[colName]
       //check if name already exist
       if (getName == undefined) {
@@ -212,18 +213,21 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   bridge.on('getCollections', async ({ data, respond }) => {
     const { all } = data
     var col = await chrome.storage.local.get('collections')
-    const colls = col['collections']
 
-    if (!all) {
-      const keys = Object.keys(colls).slice(0, 3)
-      respond(keys)
+    if (Object.values(col).length > 0) {
+      const colls = col['collections']
+      if (!all) {
+        const keys = Object.keys(colls).slice(0, 3)
+        respond(keys)
+      }
+      else {
+
+        const keys = Object.keys(colls)
+        respond(keys)
+
+      }
     }
-    else {
 
-      const keys = Object.keys(colls)
-      respond(keys)
-
-    }
   })
 
   bridge.on('getCollectionItems', async ({ data, respond }) => {
@@ -251,21 +255,40 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   bridge.on('addTocollection', async ({ data, respond }) => {
     const { colName } = data
     const { colItem } = data
-    const date = new Date.now()
+    const date = Date.now()
     //get collections
     const col = await chrome.storage.local.get('collections')
     //check if it not empty
+    const coll = col['collections']
     if (Object.keys(col).length > 0) {
-      const getName = col[colName]
+      console.log(colName)
+      const getName = coll[colName]
       //check if name already exist
-      if (getName == undefined) {
+      console.log("hello therei", getName,)
 
-        col[colItem].unshift({ item: colName, date: date })
-        respond({ error: false, msg: "ok" })
+      if (getName != undefined) {
+        const collectionItems = coll[colName]['cols']
+        const hasITem = collectionItems.map((item) => {
+          if (item.url == colItem.url) {
+            return item
+          }
+
+        })
+        console.log(coll[colName]['cols'])
+        if (hasITem.length < 1) {
+          coll[colName]['cols'].unshift({ item: colName, date: date })
+          chrome.storage.local.set({ ["collections"]: coll })
+          respond({ error: false, msg: "ok" })
+
+        }
+        else {
+          respond({ error: true, msg: "item already exist" })
+
+        }
       }
       else {
 
-        respond({ error: true, msg: "name already exist" })
+        respond({ error: true, msg: "collection does not  exist" })
       }
 
 
@@ -286,18 +309,21 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     // chrome.storage.local.remove('chats')
 
     chrome.storage.local.get("chats", (items) => {
+      console.log(Object.values(items), "hello world")
+      if (Object.values(items).length > 0) {
+        const keys = Object.keys(items['chats']).reverse().slice(start, end)
+        const chatData = {}
 
-      const keys = Object.keys(items['chats']).reverse().slice(start, end)
-      const chatData = {}
+        keys.forEach((key) => {
+          chatData[key] = items['chats'][key]
 
-      keys.forEach((key) => {
-        chatData[key] = items['chats'][key]
+        })
 
-      })
+        console.log(chatData)
 
-      console.log(chatData)
+        respond(chatData)
+      }
 
-      respond(chatData)
     })
   })
 
@@ -311,7 +337,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     const date = new Date(date1).toLocaleDateString()
 
 
-    if (key != undefined) {
+    if (url != undefined) {
       chrome.storage.local.get("chats", items => {
 
         if (Object.values(items).length > 0) {
@@ -342,7 +368,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
         else {
           const chats = { "chats": {} };
           chats['chats'][date] = {};
-          chats['chats'][date][key] = data
+          chats['chats'][date][url] = data
           chrome.storage.local.set(chats);
           console.log(chats, "no chtas")
         }
