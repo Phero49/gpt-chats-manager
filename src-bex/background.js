@@ -226,6 +226,28 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     }
   })
 
+  bridge.on('getCollectionItems', async ({ data, respond }) => {
+    const { key } = data
+    const getCollection = await chrome.storage.local.get('collections')
+    const collection = getCollection['collections'][key]['cols']
+
+    chrome.storage.local.get("chats", (items) => {
+
+      var chats = []
+
+      for (const iterator of collection) {
+        const { date, item } = iterator
+        const collItem = items['chats'][date][item]
+        chats.unshift(collItem)
+      }
+
+      console.log(chats)
+      respond(chats)
+
+    })
+
+  })
+
   bridge.on('addTocollection', async ({ data, respond }) => {
     const { colName } = data
     const { colItem } = data
@@ -259,13 +281,13 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   })
 
   bridge.on("getChats", ({ data, respond }) => {
-    const { key, all, date } = data
+    const { key, start, end } = data
 
     // chrome.storage.local.remove('chats')
 
     chrome.storage.local.get("chats", (items) => {
 
-      const keys = Object.keys(items['chats']).slice(0, 3)
+      const keys = Object.keys(items['chats']).reverse().slice(start, end)
       const chatData = {}
 
       keys.forEach((key) => {
@@ -278,6 +300,8 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       respond(chatData)
     })
   })
+
+
   bridge.on("saveChats", ({ data, respond }) => {
     // console.log(data)
 
