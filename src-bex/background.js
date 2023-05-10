@@ -240,8 +240,8 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       var chats = []
 
       for (const iterator of collection) {
-        const { date, item } = iterator
-        const collItem = items['chats'][date][item]
+        const { date, url } = iterator['item']
+        const collItem = items['chats'][date][url]
         chats.unshift(collItem)
       }
 
