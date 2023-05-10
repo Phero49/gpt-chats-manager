@@ -288,6 +288,16 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     }
   })
 
+  bridge.on("getSingleChat", ({ data, respond }) => {
+    console.log("oo")
+    const { key, date } = data
+    chrome.storage.local.get("chats", (items) => {
+      const value = items['chats'][date][key]
+      console.log(value)
+      respond(value)
+    })
+  })
+
   bridge.on("getChats", ({ data, respond }) => {
     const { key, start, end, date } = data
 
@@ -311,7 +321,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       }
       else {
         const value = items['chats'][date][key]
-        console.log(value)
+        console.log(value, "value")
         respond(value)
       }
 

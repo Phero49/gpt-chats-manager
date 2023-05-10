@@ -1,12 +1,10 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated reveal class="bg-grey-8">
+    <q-header v-if="$route.name != 'editChat'" elevated class="bg-grey-8">
       <q-toolbar>
         <q-toolbar-title
           ><q-icon name="manager" /> Chats Manager
         </q-toolbar-title>
-
-        {{ store.url }}{{ store.title }}
 
         <div>
           <q-btn

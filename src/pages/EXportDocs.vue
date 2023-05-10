@@ -101,16 +101,18 @@ const route = useRoute();
 const { url, date } = route.query;
 const selectChat = ref(false);
 const get_chat = async () => {
-  if (store.htmlString.length < 1) {
+  console.log("fffff");
+  if (store.contents.length < 1) {
+    console.log("go");
     if (date != undefined && url != undefined) {
-      const { data, respond } = await $q.bex.send("getChats", {
+      const { data, respond } = await $q.bex.send("getSingleChat", {
         key: url,
-        all: false,
+
         date: date,
       });
-
-      if (data.stutus) {
-        store.$state = data.item;
+      console.log(data, "hhhhh");
+      if (Object.values(data).length > 0) {
+        store.$state = data;
       } else {
         $q.dialog({
           message: "something went wrong , chat was not found ",
@@ -154,7 +156,7 @@ const toPdf = async () => {
     console.log(lastChild.parent().text(), "\n", `#group-${makeEven(i)}`, i);
   }
 
-  pdf.text(bodyContent, 0, 0).save("ok.pdf");
+  pdf.text(bodyContent.value, 20, 20).save("ok.pdf");
   //const output = await inlinecss(temp, {});
   //console.log(output);
   //window.open(pdfs);
@@ -173,7 +175,7 @@ const toolbar = [
   ],
   ["bold", "italic", "strike", "underline", "subscript", "superscript"],
   ["token", "hr", "link", "custom_btn"],
-  ["print", "fullscreen"],
+  ["print"],
   [
     {
       label: $q.lang.editor.formatting,
@@ -220,6 +222,7 @@ const toolbar = [
   ["quote", "unordered", "ordered", "outdent", "indent"],
 
   ["undo", "redo"],
+  ["token"],
 ];
 
 //process the html like removing buttons
@@ -324,6 +327,11 @@ if (store.contents.length > 0) {
 }
 </script>
 <style>
+.q-editor__toolbars-container {
+  top: 0px;
+  z-index: 1;
+  position: fixed;
+}
 .default-styles {
   padding: 6%;
   margin-top: 4%;
