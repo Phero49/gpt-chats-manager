@@ -33,7 +33,9 @@
                         <q-item
                           clickable
                           v-close-popup
-                          @click="deleteChat(values.url, values.title, index)"
+                          @click="
+                            deleteChat(values.url, values.title, index, key)
+                          "
                         >
                           <q-item-section> Delete </q-item-section>
                         </q-item>
@@ -300,24 +302,28 @@ onMounted(async () => {
 
 function open(data) {
   const { date, url } = data;
-
+  del;
   // store.$patch({ ...doc });
   router.push(`/exportDocs?date=${date}&url=${url}`);
 }
 
-async function deleteChat(url, title, index) {
+async function deleteChat(url, title, index, key) {
   console.log("called");
   title = cheerio.load(`${title != undefined ? title : "null"}`).text();
-  const deleted = await $q.bex.send("storage.remove", {
-    key: url,
+  const deleted = await $q.bex.send("removeChat", {
+    date: key,
+    url: url,
   });
 
-  chats.value.splice(index, 1);
-  $q.notify({
-    message: `${title} , chat successfully removed`,
-    color: "red-7",
-    textColor: "white",
-  });
+  if (deleted) {
+    console.log(chats.value[key]);
+    delete chats.value[key][url];
+    $q.notify({
+      message: `${title} , chat successfully removed`,
+      color: "red-7",
+      textColor: "white",
+    });
+  }
 }
 </script>
 

@@ -334,7 +334,47 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     })
   })
 
+  function removeFromCollection(date, url, colName) {
+    chrome.storage.local.get("collections", (item) => {
+      const collection = item['collections']
+      for (const key of Object.keys(collection)) {
+        const { date, cols } = collection[key]
+        for (let index = 0; index < cols.length; index++) {
+          const { item } = cols[index]
+          const { url2 } = item
+          if (url === url2) {
+            collection[key]['cols'].splice(index, 1)
 
+
+
+          }
+        }
+
+      }
+
+      chrome.storage.local.set({ "collections": collection })
+
+    })
+  }
+
+  bridge.on("removeChat", ({ data, respond }) => {
+    const { date, url } = data
+    chrome.storage.local.get("chats", async (items) => {
+      var chats = items['chats'][date]
+      const deleted = delete chats[url]
+      if (deleted) {
+
+        const chatsBydate = {}
+        chatsBydate[date] = chats
+        console.log(chatsBydate, { "chats": chatsBydate })
+        await chrome.storage.local.set({ "chats": chatsBydate })
+        respond(true)
+        removeFromCollection(url)
+
+      }
+    })
+
+  })
   bridge.on("saveChats", ({ data, respond }) => {
 
     //geting key and date from the saved item
