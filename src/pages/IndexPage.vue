@@ -47,7 +47,6 @@
                 >
                   <div @click="open({ date: key, url: values.url })">
                     <q-item-label lines="2">
-                      {{ values }}
                       {{
                         cheerio
                           .load(
@@ -200,12 +199,13 @@ const router = useRouter();
 const $q = useQuasar();
 const chats = ref([]);
 const selectCollectionDialog = ref(false);
-const selectedItem = ref();
+const selectedItem = ref({});
 const selectedCollection = ref("");
 const collections = ref([]);
 const collOptions = ref(collections);
 const openDialog = async (item) => {
   selectedItem.value = item;
+
   selectCollectionDialog.value = true;
   const { data, respond } = await $q.bex.send("getCollections", { all: true });
   collections.value = data;
@@ -255,9 +255,11 @@ const filterFn = (val, update, abort) => {
 
 const addItemToCollection = async () => {
   if (selectedItem.value != undefined) {
+    console.log(selectedItem.value, selectedCollection.value, "kkkko");
+
     const { data, respond } = await $q.bex.send("addTocollection", {
-      ...selectedItem.value,
-      collName: selectedCollection.value,
+      colItem: selectedItem.value,
+      colName: selectedCollection.value,
     });
 
     const { error, msg } = data;

@@ -170,8 +170,6 @@ function scrollTo(index) {
 }
 
 $q.bex.on("get_chat", (data) => {
-  console.log("emited", data);
-
   if (data.data.chat) {
     const mydata = data.data;
     chatContents.value = data.data.req;
@@ -194,7 +192,6 @@ leftDrawerOpen,
   function toggleLeftDrawer() {
     leftDrawerOpen.value = !leftDrawerOpen.value;
   };
-$q.bex.on("storage.remove", () => {});
 
 const dr = ref();
 const draggedItemIndex = ref();

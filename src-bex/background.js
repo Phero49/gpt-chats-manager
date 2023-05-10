@@ -256,6 +256,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     const { colName } = data
     const { colItem } = data
     const date = Date.now()
+    //chrome.storage.local.remove('collections')
     //get collections
     const col = await chrome.storage.local.get('collections')
     //check if it not empty
@@ -268,15 +269,21 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
       if (getName != undefined) {
         const collectionItems = coll[colName]['cols']
-        const hasITem = collectionItems.map((item) => {
+        var hasITem = false
+        for (const iterator of collectionItems) {
+          console.log(iterator)
+          const { date, item } = iterator
           if (item.url == colItem.url) {
-            return item
+            hasITem = true
+            break
           }
 
-        })
-        console.log(coll[colName]['cols'])
-        if (hasITem.length < 1) {
-          coll[colName]['cols'].unshift({ item: colName, date: date })
+        }
+
+
+        console.log(coll[colName]['cols'], hasITem)
+        if (!hasITem) {
+          coll[colName]['cols'].unshift({ item: { ...colItem }, date: date })
           chrome.storage.local.set({ ["collections"]: coll })
           respond({ error: false, msg: "ok" })
 
