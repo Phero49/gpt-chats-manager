@@ -22,19 +22,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
               var chat = { "request": [], "response": [] }
               var currentEl = null
-              /*            // Create an observer instance
-                          const observer = new MutationObserver(function (mutationsList, observer) {
-              
-                            // Iterate over the mutations
-                            for (let mutation of mutationsList) {
-                              console.log(mutation)
-                              // Check if the target element is now available
-                          
-              
-                            }
-                          });
-              
-              */
+
 
               const element = document.querySelector('div.group');
               if (element) {
@@ -57,16 +45,6 @@ chrome.runtime.onInstalled.addListener(() => {
               }
 
 
-
-
-
-              // Options for the observer (which mutations to observe)
-              //  const config = { childList: true, subtree: true };
-
-              // Start observing the target node for configured mutations
-              //  observer.observe(targetNode, config);
-
-
             }
           }, 1000)
         },
@@ -85,11 +63,11 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
 
   chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    console.log(request)
+    console.log(request, sender, "kkkkkkkpppp")
     if (sender.origin === "https://chat.openai.com") {
-      console.log("all good")
+      console.log("sender", sender.url)
       const title = sender.tab.title
-      const chat_url = sender.url
+      const chat_url = sender.tab.url
       const chat_data = request.data
       var req = []
       var groups = []
@@ -311,25 +289,32 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   })
 
   bridge.on("getChats", ({ data, respond }) => {
-    const { key, start, end } = data
+    const { key, start, end, date } = data
 
-    // chrome.storage.local.remove('chats')
+    //  chrome.storage.local.clear()
 
     chrome.storage.local.get("chats", (items) => {
-      console.log(Object.values(items), "hello world")
-      if (Object.values(items).length > 0) {
-        const keys = Object.keys(items['chats']).reverse().slice(start, end)
-        const chatData = {}
+      if (key == null || key == undefined) {
+        if (Object.values(items).length > 0) {
+          const keys = Object.keys(items['chats']).reverse().slice(start, end)
+          const chatData = {}
 
-        keys.forEach((key) => {
-          chatData[key] = items['chats'][key]
+          keys.forEach((key) => {
+            chatData[key] = items['chats'][key]
 
-        })
+          })
 
-        console.log(chatData)
+          console.log(chatData)
 
-        respond(chatData)
+          respond(chatData)
+        }
       }
+      else {
+        const value = items['chats'][date][key]
+        console.log(value)
+        respond(value)
+      }
+
 
     })
   })
@@ -337,26 +322,32 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   function removeFromCollection(date, url, colName) {
     chrome.storage.local.get("collections", (item) => {
       const collection = item['collections']
-      for (const key of Object.keys(collection)) {
-        const { date, cols } = collection[key]
-        for (let index = 0; index < cols.length; index++) {
-          const { item } = cols[index]
-          const { url2 } = item
-          if (url === url2) {
-            collection[key]['cols'].splice(index, 1)
+      if (collection != undefined) {
+        for (const key of Object.keys(collection)) {
+          const { date, cols } = collection[key]
+          for (let index = 0; index < cols.length; index++) {
+            const { item } = cols[index]
+            const { url2 } = item
+            if (url === url2) {
+              collection[key]['cols'].splice(index, 1)
 
 
 
+            }
           }
+
         }
+        chrome.storage.local.set({ "collections": collection })
 
       }
 
-      chrome.storage.local.set({ "collections": collection })
+
 
     })
   }
+  bridge.on("removeFromcollection", ({ data, respond }) => {
 
+  })
   bridge.on("removeChat", ({ data, respond }) => {
     const { date, url } = data
     chrome.storage.local.get("chats", async (items) => {
@@ -391,13 +382,15 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
           //check if chats are empty  
 
           const getChatByDate = Object.keys(items['chats']).includes(date)
-
+          console.log(getChatByDate, "has date")
           if (getChatByDate) {
-            //check if there are chats for the dete
 
+            //check if there are chats for the dete
+            console.log(url)
             items['chats'][date][url] = data
-            //  items['chats'][date] = { ...{ key: key, data: data }, ...items['chats'][date] }
-            chrome.storage.local.set(items)
+            console.log(items['chats'], "chats")
+            // items['chats'][date] = { ...{ url: key, data: data }, ...items['chats'][date] }
+            chrome.storage.local.set({ "chats": items['chats'] })
 
           }
           else {
@@ -437,26 +430,5 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       respond(true)
     })
   })
-  // Usage: 
-  // await bridge.send('storage.remove', { key: 'someKey' })
 
-  /*
-  // EXAMPLES
-  // Listen to a message from the client
-  bridge.on('test', d => {
-    console.log(d)
-  })
-
-  // Send a message to the client based on something happening.
-  chrome.tabs.onCreated.addListener(tab => {
-    bridge.send('browserTabCreated', { tab })
-  })
-
-  // Send a message to the client based on something happening.
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url) {
-      bridge.send('browserTabUpdated', { tab, changeInfo })
-    }
-  })
-   */
 })

@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 
 import { useQuasar } from "quasar";
 import { docStore } from "../stores/curentDocStore";
@@ -101,28 +101,32 @@ const route = useRoute();
 const { url, date } = route.query;
 const selectChat = ref(false);
 const get_chat = async () => {
-  if (date != undefined && url != undefined) {
-    const { data, respond } = await $q.bex.send("getChats", {
-      key: url,
-      all: false,
-      date: date,
-    });
-
-    if (data.stutus) {
-      store.$state = data.item;
-    } else {
-      $q.dialog({
-        message: "something went wrong , chat was not found ",
+  if (store.htmlString.length < 1) {
+    if (date != undefined && url != undefined) {
+      const { data, respond } = await $q.bex.send("getChats", {
+        key: url,
+        all: false,
+        date: date,
       });
+
+      if (data.stutus) {
+        store.$state = data.item;
+      } else {
+        $q.dialog({
+          message: "something went wrong , chat was not found ",
+        });
+      }
+    } else {
+      console.log("no chats");
     }
-  } else {
-    console.log("no chats");
   }
 };
 
 const store = docStore();
 const $q = useQuasar();
-
+onUnmounted(() => {
+  store.$reset();
+});
 const editorRef = ref();
 
 const toPdf = async () => {

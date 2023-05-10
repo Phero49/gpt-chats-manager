@@ -5,6 +5,9 @@
         <q-toolbar-title
           ><q-icon name="manager" /> Chats Manager
         </q-toolbar-title>
+
+        {{ store.url }}{{ store.title }}
+
         <div>
           <q-btn
             icon="folder"
@@ -126,7 +129,7 @@
 </template>
 
 <script setup>
-import { defineComponent, ref, onMounted } from "vue";
+import { defineComponent, ref, onMounted, onUnmounted } from "vue";
 import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { useRouter } from "vue-router";
@@ -169,21 +172,31 @@ function scrollTo(index) {
   }, 3000);
 }
 
-$q.bex.on("get_chat", (data) => {
+$q.bex.once("get_chat", (data) => {
   if (data.data.chat) {
     const mydata = data.data;
     chatContents.value = data.data.req;
 
     const title = `<h6>${data.data.title}</h6>`;
-    store.$patch({
-      contents: mydata.req,
-      title: title,
-      url: mydata.chat_url,
-      htmlString: mydata.chat.join(""),
-    });
-    router.push("/exportDocs");
+    store.$reset();
+    setTimeout(() => {
+      store.contents = mydata.req;
+
+      store.url = mydata.chat_url;
+      store.title = title;
+      store.htmlString = mydata.chat.join("");
+
+      router.push("/exportDocs");
+    }, 400);
+
     console.log(data, "mydata");
   }
+
+  // $q.bex.off()
+});
+
+onUnmounted(() => {
+  $q.bex.off("get_chat");
 });
 
 const leftDrawerOpen = ref(false);

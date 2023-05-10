@@ -302,7 +302,7 @@ onMounted(async () => {
 
 function open(data) {
   const { date, url } = data;
-  del;
+
   // store.$patch({ ...doc });
   router.push(`/exportDocs?date=${date}&url=${url}`);
 }
