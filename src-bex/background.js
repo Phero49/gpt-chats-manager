@@ -355,6 +355,71 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
     })
   }
+
+  bridge.on("addToRecent", async ({ data, respond }) => {
+    const { chatString } = data
+    await chrome.storage.local.remove("recent")
+    if (chatString != null) {
+      chrome.storage.local.get("recent", (items) => {
+        const recent = items['recent']
+
+        if (recent != undefined) {
+          const indexOf = recent.indexOf(chatString)
+          console.log(indexOf, "pppppp")
+          if (indexOf < 0) {
+            const length = recent.unshift(chatString)
+            if (length > 15) {
+              recent.pop()
+            }
+            chrome.storage.local.set({ "recent": recent })
+
+          }
+          else {
+            const item = recent.splice(indexOf, 1)
+            recent.unshift(item[0])
+            chrome.storage.local.set({ "recent": recent })
+
+
+          }
+
+          respond()
+
+
+
+        }
+        else {
+
+          chrome.storage.local.set({ "recent": [chatString] })
+          respond()
+
+        }
+
+      })
+    }
+    else {
+      respond([])
+    }
+
+
+
+
+  })
+
+
+  bridge.on("getRecent", ({ data, respond }) => {
+    //get recent opened chats
+    //chrome.storage.local.remove("recent")
+    chrome.storage.local.get("recent", (items) => {
+      console.log(items)
+      respond(items["recent"])
+
+
+    })
+
+
+  })
+
+
   bridge.on("removeFromcollection", ({ data, respond }) => {
 
   })

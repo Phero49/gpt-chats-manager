@@ -191,12 +191,14 @@
 
 <script setup>
 import { useQuasar } from "quasar";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import * as cheerio from "cheerio";
 import { docStore } from "src/stores/curentDocStore";
 import CollectionComp from "src/components/CollectionComp.vue";
+import { recent } from "src/stores/recent";
 const store = docStore();
+const recentStore = recent();
 const router = useRouter();
 const $q = useQuasar();
 const chats = ref([]);
@@ -257,8 +259,6 @@ const filterFn = (val, update, abort) => {
 
 const addItemToCollection = async () => {
   if (selectedItem.value != undefined) {
-    console.log(selectedItem.value, selectedCollection.value, "kkkko");
-
     const { data, respond } = await $q.bex.send("addTocollection", {
       colItem: selectedItem.value,
       colName: selectedCollection.value,
@@ -295,11 +295,35 @@ async function getChats() {
 
   res.respond();
 }
+const getRecent = async () => {
+  const { data, respond } = await $q.bex.send("getRecent");
+  if (data) {
+    for (const iterator of data) {
+      if (iterator != null) {
+        const [date, url] = iterator.split(",,");
+        const { data, respond } = await $q.bex.send("getChats", {
+          key: url,
+
+          date: date,
+        });
+        recentStore.recent.push({
+          label: cheerio.load(data.title).text(),
+          date: date,
+          url: url,
+        });
+      }
+    }
+  }
+};
 
 onMounted(async () => {
   await getChats();
+  await getRecent();
 });
 
+onUnmounted(() => {
+  recentStore.$reset();
+});
 function open(data) {
   const { date, url } = data;
 

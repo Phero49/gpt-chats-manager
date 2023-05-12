@@ -17,7 +17,7 @@
         </div>
 
         <div>
-          <q-btn icon="event" label="calender" flat @click="onClick">
+          <q-btn icon="backup" label="backup" flat>
             <q-menu>
               <q-date v-model="date" minimal />
             </q-menu>
@@ -63,7 +63,7 @@
       </div>
     </q-footer>
     <q-drawer v-model="leftDrawerOpen" show-if-above>
-      <q-list v-mutation="handler">
+      <q-list v-mutation="handler" v-if="$route.name == 'editChat'">
         <q-item-label header>chat Contents </q-item-label>
         <div
           id="container"
@@ -118,6 +118,22 @@
           </div>
         </div>
       </q-list>
+
+      <q-list dense v-if="$route.path === '/'">
+        <div class="text-subtitle1 q-py-md text-center">
+          Recently opened chats
+        </div>
+
+        <q-item
+          v-for="(item, i) in recentStore.recent"
+          :to="`/exportDocs?date=${item['date']}&url=${item['url']}`"
+          :key="i"
+        >
+          <q-item-label lines="2" header>
+            {{ item.label }}
+          </q-item-label>
+        </q-item>
+      </q-list>
     </q-drawer>
 
     <q-page-container class="bg-grey-3">
@@ -128,12 +144,12 @@
 
 <script setup>
 import { defineComponent, ref, onMounted, onUnmounted } from "vue";
-import EssentialLink from "components/EssentialLink.vue";
 import { useQuasar } from "quasar";
 import { useRouter } from "vue-router";
 import { makeEven } from "src/js/getIds";
 import { docStore } from "../stores/curentDocStore";
-import { parse } from "postcss";
+import { recent } from "src/stores/recent";
+const recentStore = recent();
 const store = docStore();
 const router = useRouter();
 const $q = useQuasar();
@@ -148,13 +164,13 @@ function today() {
       return item;
     }
   });
+
   let mothDay = fixedDate.splice(0, 2);
   console.log(fixedDate.concat(mothDay).join("/"));
   return fixedDate.concat(mothDay).join("/");
 }
 
 const date = ref(today());
-console.log(date.value);
 
 const chatContents = store.contents;
 const selectedItem = ref(0);
@@ -189,8 +205,6 @@ $q.bex.once("get_chat", (data) => {
 
     console.log(data, "mydata");
   }
-
-  // $q.bex.off()
 });
 
 onUnmounted(() => {

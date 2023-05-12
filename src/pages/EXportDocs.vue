@@ -23,6 +23,7 @@
         <q-editor
           ref="editorRef"
           flat
+          :readonly="readonly"
           :toolbar-color="'blue'"
           :toolbar-text-color="'white'"
           :toolbar-bg="'blue'"
@@ -31,6 +32,7 @@
           min-height="5rem"
           :toolbar="toolbar"
           :fonts="{
+            default: 'Calibri',
             arial: 'Arial',
             arial_black: 'Arial Black',
             comic_sans: 'Comic Sans MS',
@@ -40,7 +42,28 @@
             times_new_roman: 'Times New Roman',
             verdana: 'Verdana',
           }"
-        />
+        >
+          <template v-slot:token>
+            <q-card-actions align="center">
+              <q-btn
+                flat
+                size="sm"
+                color="white"
+                label="home"
+                icon="home"
+                to="/"
+              />
+              <q-toggle
+                v-model="readonly"
+                color="white"
+                icon="edit"
+                label="Edit"
+                size="sm"
+                class="text-white"
+              />
+            </q-card-actions>
+          </template>
+        </q-editor>
       </transition-group>
     </q-card-section>
     <q-card-section> </q-card-section>
@@ -97,7 +120,10 @@ import { PDFDocument } from "pdf-lib";
 import { makeEven } from "../js/getIds";
 
 const pdf = new jsPDF({ unit: "pt", compress: true, format: "a4" });
+pdf.setFontSize(12);
+
 const route = useRoute();
+const readonly = ref(false);
 const { url, date } = route.query;
 const selectChat = ref(false);
 const get_chat = async () => {
@@ -153,10 +179,10 @@ const toPdf = async () => {
     const font = window.getComputedStyle(co).fontFamily;
     lastChild.css({ "line-eight": 1.76, "font-family": "sans-serif" });
     bodyContent.value += lastChild.parent().text();
-    console.log(lastChild.parent().text(), "\n", `#group-${makeEven(i)}`, i);
   }
 
-  pdf.text(bodyContent.value, 20, 20).save("ok.pdf");
+  pdf.setLineHeightFactor(5);
+  pdf.text("The Gartner 20", 20, { maxWidth: 595 }).save("ok.pdf");
   //const output = await inlinecss(temp, {});
   //console.log(output);
   //window.open(pdfs);
@@ -165,7 +191,10 @@ const toPdf = async () => {
 };
 
 const toolbar = [
+  ["token"],
+
   [
+    ,
     {
       label: $q.lang.editor.align,
       icon: $q.iconSet.editor.align,
@@ -174,7 +203,7 @@ const toolbar = [
     },
   ],
   ["bold", "italic", "strike", "underline", "subscript", "superscript"],
-  ["token", "hr", "link", "custom_btn"],
+  ["hr", "link", "custom_btn"],
   ["print"],
   [
     {
@@ -222,7 +251,6 @@ const toolbar = [
   ["quote", "unordered", "ordered", "outdent", "indent"],
 
   ["undo", "redo"],
-  ["token"],
 ];
 
 //process the html like removing buttons
@@ -261,8 +289,17 @@ const save = async () => {
   }
 };
 
+const addToRecent = async () => {
+  if (date != undefined && url != undefined) {
+    const chatString = date + ",," + url;
+    await $q.bex.send("addToRecent", { chatString: chatString });
+    console.log(chatString, { chatString: chatString });
+  }
+};
+
 onMounted(async () => {
   await get_chat();
+
   processHtml().then(() => {
     const contentStyle = {
       fontFamily: "Calibri",
@@ -294,6 +331,8 @@ onMounted(async () => {
 
     const element = page;
   });
+
+  await addToRecent();
 
   //TODO:attempting to display the content in pages
 
