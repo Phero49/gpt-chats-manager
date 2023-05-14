@@ -118,9 +118,11 @@ import * as Cheerio from "cheerio";
 import { PDFDocument } from "pdf-lib";
 
 import { makeEven } from "../js/getIds";
-
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+import html2pdmake from "html-to-pdfmake";
+pdfMake.vfs = pdfFonts;
 const pdf = new jsPDF({ unit: "pt", compress: true, format: "a4" });
-pdf.setFontSize(12);
 
 const route = useRoute();
 const readonly = ref(false);
@@ -159,6 +161,7 @@ const editorRef = ref();
 
 const toPdf = async () => {
   const html = editorRef.value.getContentEl();
+
   $q.loading.show({
     spinnerColor: "red",
     spinnerSize: "100px",
@@ -166,7 +169,7 @@ const toPdf = async () => {
   });
   //TODO::load font forms
 
-  const co = html.querySelector("#editorContent");
+  const co = html.querySelector(".page");
   const $ = Cheerio.load(html.innerHTML);
   const content = $("#editorContent");
 
@@ -181,8 +184,14 @@ const toPdf = async () => {
     bodyContent.value += lastChild.parent().text();
   }
 
-  pdf.setLineHeightFactor(5);
-  pdf.text("The Gartner 20", 20, { maxWidth: 595 }).save("ok.pdf");
+  var val = html2pdmake(`${content.html()}`, { ignoreStyles: ["font-family"] });
+  console.log(JSON.parse(JSON.stringify(val)));
+  var dd = { content: JSON.parse(JSON.stringify(val)) };
+
+  pdfMake.createPdf(dd).download();
+
+  // pdf.text(bodyContent.value, 20, { maxWidth: 595 }).save("ok.pdf");
+
   //const output = await inlinecss(temp, {});
   //console.log(output);
   //window.open(pdfs);
@@ -956,8 +965,9 @@ pre[class*="language-"] {
   quotes: "\201C""\201D""\2018""\2019";
 }
 .prose
-  :where(blockquote p:first-of-type):not(:where([class~="not-prose"]
-      *)):before {
+  :where(blockquote p:first-of-type):not(
+    :where([class~="not-prose"] *)
+  ):before {
   content: open-quote;
 }
 .prose

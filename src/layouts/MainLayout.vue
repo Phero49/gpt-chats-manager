@@ -19,7 +19,19 @@
         <div>
           <q-btn icon="backup" label="backup" flat>
             <q-menu>
-              <q-date v-model="date" minimal />
+              <q-list>
+                <q-item clickable v-ripple>
+                  <q-item-section avatar>
+                    <q-avatar>
+                      <img
+                        src="src/assets/Google_Drive_icon_(2020).svg"
+                        alt=""
+                      />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>Google drive</q-item-section>
+                </q-item>
+              </q-list>
             </q-menu>
           </q-btn>
         </div>
@@ -149,6 +161,7 @@ import { useRouter } from "vue-router";
 import { makeEven } from "src/js/getIds";
 import { docStore } from "../stores/curentDocStore";
 import { recent } from "src/stores/recent";
+import DriveIcon from "src/assets/DriveIcon.vue";
 const recentStore = recent();
 const store = docStore();
 const router = useRouter();
