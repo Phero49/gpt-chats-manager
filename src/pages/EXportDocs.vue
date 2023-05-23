@@ -105,6 +105,7 @@
       </q-card-actions>
     </q-page-sticky>
   </q-page>
+  <div id="render"></div>
 </template>
 
 <script setup>
@@ -121,6 +122,7 @@ import { makeEven } from "../js/getIds";
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import html2pdmake from "html-to-pdfmake";
+import hmtl2canvas from "html2canvas";
 pdfMake.vfs = pdfFonts;
 const pdf = new jsPDF({ unit: "pt", compress: true, format: "a4" });
 
@@ -169,34 +171,66 @@ const toPdf = async () => {
   });
   //TODO::load font forms
 
-  const co = html.querySelector(".page");
+  const co = html.querySelector("#editorContent");
   const $ = Cheerio.load(html.innerHTML);
   const content = $("#editorContent");
 
-  const bodyContent = ref("");
   console.log(content.children().length);
-  for (let i = 0; i < content.children().length; i++) {
-    const element = content.children(`#group-${makeEven(i)}`);
-    const lastChild = element.find(".markdown");
-    lastChild.removeAttr("class");
-    const font = window.getComputedStyle(co).fontFamily;
-    lastChild.css({ "line-eight": 1.76, "font-family": "sans-serif" });
-    bodyContent.value += lastChild.parent().text();
-  }
 
-  var val = html2pdmake(`${content.html()}`, { ignoreStyles: ["font-family"] });
-  console.log(JSON.parse(JSON.stringify(val)));
-  var dd = { content: JSON.parse(JSON.stringify(val)) };
+  const codes = co.querySelectorAll("code");
+  const allChildren = Array.from(co.children);
+  const codeToImage = new Promise(async (resolve, reject) => {
+  codes.forEach((element) => {
+      if (element.hasAttribute("class") == false) {
+        const styles = window.getComputedStyle(element);
+        const { color, fontFamily, tabSize, fontWeight } = styles;
+        element.setAttribute(
+          "style",
+          `color:black;font-family:monospace;font-weight:bold`
+        );
+    } else {
+      const parent = element.parentElement.parentElement.parentElement;
 
-  pdfMake.createPdf(dd).download();
+        hmtl2canvas(parent, { scale: 0.9 }).then((canvas) => {
+          const render = document.querySelector("#render");
+          //   render.append(canvas);
+        const img = canvas.toDataURL("image/jpeg");
+        const imgEl = document.createElement("img");
+          imgEl.setAttribute("src", `${img}`);
+          //  imgEl.setAttribute("width", 500);
+        parent.replaceWith(imgEl);
+      });
+    }
+  });
+
+  allChildren.forEach((element) => {
+    element.setAttribute("style", "line-height: 1.8");
+  });
+
+    resolve();
+  });
+
+  codeToImage.then(() => {
+  setTimeout(() => {
+    console.log(co.innerHTML);
+      var val = html2pdmake(`${co.innerHTML}`, {
+      ignoreStyles: ["font-family"],
+      removeTagClasses: true,
+    });
+      var dd = { content: JSON.parse(JSON.stringify(val)) };
+
+    console.log(JSON.parse(JSON.stringify(val)));
+
+    pdfMake.createPdf(dd).download();
+    $q.loading.hide();
+  }, 500);
+  });
 
   // pdf.text(bodyContent.value, 20, { maxWidth: 595 }).save("ok.pdf");
 
   //const output = await inlinecss(temp, {});
   //console.log(output);
   //window.open(pdfs);
-
-  $q.loading.hide();
 };
 
 const toolbar = [
@@ -274,7 +308,7 @@ const processHtml = async () => {
       <b>go to chat </b>
       </a> <br/>
       </div>
-      <div id="editorContent">
+      <div id="editorContent" class ="default-style">
         ${store.htmlString}
          </div>
     </div>
@@ -311,10 +345,10 @@ onMounted(async () => {
 
   processHtml().then(() => {
     const contentStyle = {
-      fontFamily: "Calibri",
+      fontFamily: "calibri",
       maxWidth: "205mm",
       fontSize: "12pt",
-      lineHeight: "1.5",
+      lineHeight: "2",
       height: "100%",
       display: "block",
       marginRight: "auto",
@@ -383,7 +417,7 @@ if (store.contents.length > 0) {
 .default-styles {
   padding: 6%;
   margin-top: 4%;
-  font-family: Calibri;
+  font-family: calibri;
   font-size: 11pt;
   line-height: 1.15;
   text-align: left;
@@ -1040,12 +1074,7 @@ pre[class*="language-"] {
   font-size: 0.875em;
   font-weight: 600;
 }
-.prose :where(code):not(:where([class~="not-prose"] *)):before {
-  content: "`";
-}
-.prose :where(code):not(:where([class~="not-prose"] *)):after {
-  content: "`";
-}
+
 .prose :where(a code):not(:where([class~="not-prose"] *)) {
   color: inherit;
 }

@@ -2,7 +2,6 @@
   <q-page class="" padding>
     <div v-if="Object.keys(chats).length > 0">
       <collection-comp />
-      {{ Object.values(chats).length }}
       <q-timeline color="secondary" layout="dense">
         <q-infinite-scroll @load="onLoad" :offset="250">
           <q-timeline-entry

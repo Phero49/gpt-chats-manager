@@ -77,7 +77,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
         const element = chat_data[index];
         if ((index + 1) % 2 !== 0) {
 
-          const headings = `<div class="itemCount-${index + 1}" style="font-weight:bold;"> <br/> ${element} </br><br/> </div>`
+          const headings = `<div class="itemCount-${index + 1}" style="font-weight:bold; margin-top:10px; margin-bottom:10px;font-size:18px;">  ${element}  </div>`
           groups.push(headings)
           req.push(element)
         }
