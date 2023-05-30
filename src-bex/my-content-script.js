@@ -17,45 +17,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 });
 
 export default bexContent((bridge) => {
-  bridge.on('i', ({ data, respond }) => {
-    console.log('recived')
-    const observer = new MutationObserver((mutations, observe) => {
 
-      for (const mutation of mutations) {
-        const { target } = mutation
-        const getbtn = target.querySelector('div>.justify-center>button.relative')
-        console.log(getbtn)
-        if (getbtn != null) {
-          if (getbtn.parentElement != null || getbtn.parentElement != undefined) {
-            observe.disconnect()
-            let btn = `<button id="exportchat" class="btn ml-4 relative text-green btn-neutral border-0 md:border">
-        Export chat
-      </button>`
-            const parser = new DOMParser()
-            const parsedEl = parser.parseFromString(btn, 'text/html')
-            getbtn.parentElement.appendChild(parsedEl.querySelector("button"))
-            console.log(getbtn.parentElement)
-            document.querySelector("#exportchat").addEventListener('click', () => {
-              getChat()
-              console.log('export')
-            })
+  bridge.on('has_updated', ({ data, respond }) => {
+    console.log('hello world')
 
-            break
-          }
-
-        }
-
-
-      }
+  })
 
 
 
-    })
-    // observer.observe(document.body, { childList: true, subtree: true, })
-
-  }
-
-  )
 
   window.addEventListener("getchatgptDom", function (event) {
     // Check if the event is the one you're expecting

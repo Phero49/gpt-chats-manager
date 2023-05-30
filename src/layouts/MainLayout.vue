@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="lHh Lpr lff">
     <q-header v-if="$route.name != 'editChat'" elevated class="bg-grey-8">
       <q-toolbar>
         <q-toolbar-title
@@ -20,7 +20,7 @@
           <q-btn icon="backup" label="backup" flat>
             <q-menu>
               <q-list>
-                <q-item clickable v-ripple>
+                <q-item clickable v-ripple @click="authi">
                   <q-item-section avatar>
                     <q-avatar>
                       <img
@@ -53,20 +53,13 @@
       </q-toolbar>
     </q-header>
     <q-footer
-      v-if="false"
-      reveal
+      v-if="$route.path == '/'"
       elevated
       :height-hint="20"
       class="bg-black transparent"
     >
       <div class="q-py-sm">
-        <div>
-          <q-card-actions align="center">
-            <q-btn color="black" icon="bi-twitter" flat @click="onClick" />
-            <q-btn color="black" icon="bi-linkedin" flat @click="onClick" />
-            <q-btn color="black" icon="bi-facebook" flat @click="onClick" />
-          </q-card-actions>
-        </div>
+        <div></div>
         <div
           class="text-center q-py-sm text-subtitle1 text-capitalize text-black"
         >
@@ -162,6 +155,61 @@ import { makeEven } from "src/js/getIds";
 import { docStore } from "../stores/curentDocStore";
 import { recent } from "src/stores/recent";
 import DriveIcon from "src/assets/DriveIcon.vue";
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+} from "firebase/auth";
+const auth = getAuth();
+const apiKey = auth.app.options.apiKey;
+
+const authi = () => {
+  window.location = "sandbox.html";
+};
+const clientID =
+  "468883781787-l5l5p17fsl57h0c9b129c3ju3ldmsfol.apps.googleusercontent.com";
+const scope =
+  "https://www.googleapis.com/auth/drive.appdata,https://www.googleapis.com/auth/drive.appfolder";
+async function SignupWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  try {
+    const user = await signInWithPopup(auth, provider);
+    const { accessToken } = user.user;
+
+    if (user != null) {
+      //   console.log(user);
+      try {
+        const response = await api.get("/login", {
+          headers: { authorization: `Bearer ${accessToken}` },
+        });
+        const customToken = response.data;
+
+        setPersistence(auth, browserLocalPersistence)
+          .then(() => {
+            return signInWithCustomToken(auth, customToken);
+          })
+          .then((u) => {
+            console.log(u);
+            console.log(auth.currentUser);
+          });
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+function backup(params) {
+  onAuthStateChanged(auth, (user) => {
+    if (user != null) {
+    } else {
+      SignupWithGoogle();
+    }
+  });
+}
+
 const recentStore = recent();
 const store = docStore();
 const router = useRouter();

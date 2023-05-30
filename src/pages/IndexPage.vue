@@ -132,25 +132,65 @@
         </div>
       </div>
     </div>
-
+    <q-page-sticky position="bottom-right" :offset="[18, 100]" expand>
+      <q-card-actions vertical align="center">
+        <q-btn color="blue-6" round icon="bi-twitter" flat @click="onClick">
+          <q-tooltip> follow me on twitter </q-tooltip>
+        </q-btn>
+        <q-btn color="blue-8" round icon="bi-linkedin" flat @click="onClick">
+          <q-tooltip> follow me on linked </q-tooltip>
+        </q-btn>
+        <q-btn color="primary" round icon="bi-facebook" flat @click="onClick">
+          <q-tooltip> follow me on facebook </q-tooltip>
+        </q-btn>
+      </q-card-actions>
+    </q-page-sticky>
     <q-page-sticky position="bottom-right" :offset="[18, 30, 20]" expand>
       <q-btn
         fab-mini
         color="purple"
         label="feedback"
-        @click="someMethod"
+        @click="feedBack = true"
         icon="feedback"
       />
     </q-page-sticky>
     <q-dialog v-model="feedBack" persistent>
-      <q-card>
+      <q-card style="width: 400px">
         <q-card-section>
-          <q-input v-model="name" type="text" label="Label" />
+          <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
+            <q-input
+              v-model="fullName"
+              aria-required
+              dense
+              type="text"
+              label="Full name"
+            />
+            <q-input
+              v-model="email"
+              aria-required
+              dense
+              type="email"
+              label="Email"
+            />
+            <q-input v-model="subject" dense type="text" label="subject" />
+            <q-input
+              type="textarea"
+              v-model="message"
+              dense
+              label="message"
+            ></q-input>
+
+            <div>
+              <q-btn
+                label="Submit"
+                type="submit"
+                color="primary"
+                v-close-popup
+              />
+              <q-btn flat label="Cancel" color="primary" v-close-popup />
+            </div>
+          </q-form>
         </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" v-close-popup />
-          <q-btn flat label="Turn on Wifi" color="primary" v-close-popup />
-        </q-card-actions>
       </q-card>
     </q-dialog>
     <q-dialog v-model="selectCollectionDialog" persistent>
@@ -199,6 +239,7 @@ import { recent } from "src/stores/recent";
 const store = docStore();
 const recentStore = recent();
 const router = useRouter();
+const feedBack = ref(false);
 const $q = useQuasar();
 const chats = ref([]);
 const selectCollectionDialog = ref(false);
@@ -215,21 +256,23 @@ const openDialog = async (item) => {
   respond();
 };
 
+var items = 10;
 const onLoad = async (index, done) => {
   const start = Object.keys(chats.value).length;
   console.log(start, chats.value);
+
   const { data, respond } = await $q.bex.send("getChats", {
     key: null,
     all: false,
-    start: start,
-    end: start + 3,
+    start: items,
   });
-  console.log(data, "get");
+
   if (Object.values(data).length > 0) {
     const newData = { ...chats.value, ...data };
     chats.value = newData;
     respond();
     done();
+    items += 10;
   } else {
     done(true);
   }

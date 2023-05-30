@@ -14,59 +14,54 @@
     </q-card>
   </q-dialog>
   <q-page padding>
-    <q-card-section>
-      <transition-group
-        appear
-        enter-active-class="animated fadeIn"
-        leave-active-class="animated fadeOut"
+    <q-card-section :style="isProcessingDom == false ? '' : 'none'">
+      <q-editor
+        ref="editorRef"
+        flat
+        :readonly="readonly"
+        :toolbar-color="'blue'"
+        :toolbar-text-color="'white'"
+        :toolbar-bg="'blue'"
+        class="bg-grey-3"
+        v-model="editor"
+        min-height="5rem"
+        :toolbar="toolbar"
+        :fonts="{
+          default: 'Calibri',
+          arial: 'Arial',
+          arial_black: 'Arial Black',
+          comic_sans: 'Comic Sans MS',
+          courier_new: 'Courier New',
+          impact: 'Impact',
+          lucida_grande: 'Lucida Grande',
+          times_new_roman: 'Times New Roman',
+          verdana: 'Verdana',
+        }"
       >
-        <q-editor
-          ref="editorRef"
-          flat
-          :readonly="readonly"
-          :toolbar-color="'blue'"
-          :toolbar-text-color="'white'"
-          :toolbar-bg="'blue'"
-          class="bg-grey-3"
-          v-model="editor"
-          min-height="5rem"
-          :toolbar="toolbar"
-          :fonts="{
-            default: 'Calibri',
-            arial: 'Arial',
-            arial_black: 'Arial Black',
-            comic_sans: 'Comic Sans MS',
-            courier_new: 'Courier New',
-            impact: 'Impact',
-            lucida_grande: 'Lucida Grande',
-            times_new_roman: 'Times New Roman',
-            verdana: 'Verdana',
-          }"
-        >
-          <template v-slot:token>
-            <q-card-actions align="center">
-              <q-btn
-                flat
-                size="sm"
-                color="white"
-                label="home"
-                icon="home"
-                to="/"
-              />
-              <q-toggle
-                v-model="readonly"
-                color="white"
-                icon="edit"
-                label="Edit"
-                size="sm"
-                class="text-white"
-              />
-            </q-card-actions>
-          </template>
-        </q-editor>
-      </transition-group>
+        <template v-slot:token>
+          <q-card-actions align="center">
+            <q-btn
+              flat
+              size="sm"
+              color="white"
+              label="home"
+              icon="home"
+              to="/"
+            />
+            <q-toggle
+              v-model="readonly"
+              color="white"
+              icon="edit"
+              label="Edit"
+              size="sm"
+              class="text-white"
+            />
+          </q-card-actions>
+        </template>
+      </q-editor>
     </q-card-section>
-    <q-card-section> </q-card-section>
+
+    <q-card-section v-show="isProcessingDom == false"> </q-card-section>
     <q-page-sticky position="bottom-right" :offset="[18, 18]" expand>
       <q-card-actions align="center" vertical>
         <q-btn
@@ -105,15 +100,33 @@
       </q-card-actions>
     </q-page-sticky>
   </q-page>
-  <div id="render"></div>
+
+  <q-dialog v-model="finishedProcessing" persistent>
+    <q-card>
+      <q-card-section class="row items-center">
+        <q-avatar icon="download" color="primary" text-color="white" />
+        <span class="q-ml-sm">your pdf is now ready to download </span>
+      </q-card-section>
+      <q-card-actions align="center">
+        <q-btn flat label="Cancel" color="red" v-close-popup />
+        <q-btn
+          flat
+          label="download"
+          color="green"
+          icon="download"
+          v-close-popup
+          @click="downloadChat"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
 
-import { useQuasar } from "quasar";
+import { QSpinnerTail, useQuasar } from "quasar";
 import { docStore } from "../stores/curentDocStore";
-import jsPDF from "jspdf";
 import { useRoute } from "vue-router"; //import { htmlToDocx } from 'html-docx-js';
 import * as Cheerio from "cheerio";
 import { PDFDocument } from "pdf-lib";
@@ -124,23 +137,21 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 import html2pdmake from "html-to-pdfmake";
 import hmtl2canvas from "html2canvas";
 pdfMake.vfs = pdfFonts;
-const pdf = new jsPDF({ unit: "pt", compress: true, format: "a4" });
 
+const isProcessingDom = ref(false);
+const finishedProcessing = ref(false);
 const route = useRoute();
 const readonly = ref(false);
 const { url, date } = route.query;
 const selectChat = ref(false);
 const get_chat = async () => {
-  console.log("fffff");
   if (store.contents.length < 1) {
-    console.log("go");
     if (date != undefined && url != undefined) {
       const { data, respond } = await $q.bex.send("getSingleChat", {
         key: url,
 
         date: date,
       });
-      console.log(data, "hhhhh");
       if (Object.values(data).length > 0) {
         store.$state = data;
       } else {
@@ -159,28 +170,22 @@ const $q = useQuasar();
 onUnmounted(() => {
   store.$reset();
 });
-const editorRef = ref();
 
+const editorRef = ref();
+const cloneNode = ref();
 const toPdf = async () => {
+  isProcessingDom.value = true;
+  $q.loading.show({ spinnerColor: "white", spinner: QSpinnerTail });
   const html = editorRef.value.getContentEl();
 
-  $q.loading.show({
-    spinnerColor: "red",
-    spinnerSize: "100px",
-    message: "exporting chat to pdf this might take some time ",
-  });
-  //TODO::load font forms
-
   const co = html.querySelector("#editorContent");
-  const $ = Cheerio.load(html.innerHTML);
-  const content = $("#editorContent");
-
-  console.log(content.children().length);
+  cloneNode.value = co.cloneNode(true);
 
   const codes = co.querySelectorAll("code");
+
   const allChildren = Array.from(co.children);
   const codeToImage = new Promise(async (resolve, reject) => {
-  codes.forEach((element) => {
+    codes.forEach((element, index) => {
       if (element.hasAttribute("class") == false) {
         const styles = window.getComputedStyle(element);
         const { color, fontFamily, tabSize, fontWeight } = styles;
@@ -188,49 +193,65 @@ const toPdf = async () => {
           "style",
           `color:black;font-family:monospace;font-weight:bold`
         );
-    } else {
-      const parent = element.parentElement.parentElement.parentElement;
+        if (index >= codes.length - 1) {
+          finishedProcessing.value = true;
+        }
+      } else {
+        const parent = element.parentElement.parentElement.parentElement;
 
-        hmtl2canvas(parent, { scale: 0.9 }).then((canvas) => {
-          const render = document.querySelector("#render");
-          //   render.append(canvas);
-        const img = canvas.toDataURL("image/jpeg");
-        const imgEl = document.createElement("img");
-          imgEl.setAttribute("src", `${img}`);
-          //  imgEl.setAttribute("width", 500);
-        parent.replaceWith(imgEl);
-      });
-    }
-  });
+        setTimeout(() => {
+          hmtl2canvas(parent, { scale: 0.9 }).then((canvas) => {
+            //   render.append(canvas);
+            const img = canvas.toDataURL("image/png");
+            const imgEl = document.createElement("img");
+            imgEl.setAttribute("src", `${img}`);
 
-  allChildren.forEach((element) => {
-    element.setAttribute("style", "line-height: 1.8");
-  });
+            parent.replaceWith(imgEl);
+            if (index >= codes.length - 1) {
+              $q.loading.hide();
+
+              finishedProcessing.value = true;
+            }
+          });
+        }, 700);
+      }
+    });
+
+    allChildren.forEach((element) => {
+      element.setAttribute("style", "line-height: 1.8");
+    });
 
     resolve();
   });
 
-  codeToImage.then(() => {
-  setTimeout(() => {
-    console.log(co.innerHTML);
-      var val = html2pdmake(`${co.innerHTML}`, {
-      ignoreStyles: ["font-family"],
-      removeTagClasses: true,
-    });
-      var dd = { content: JSON.parse(JSON.stringify(val)) };
-
-    console.log(JSON.parse(JSON.stringify(val)));
-
-    pdfMake.createPdf(dd).download();
-    $q.loading.hide();
-  }, 500);
-  });
+  await codeToImage;
 
   // pdf.text(bodyContent.value, 20, { maxWidth: 595 }).save("ok.pdf");
 
   //const output = await inlinecss(temp, {});
   //console.log(output);
   //window.open(pdfs);
+};
+
+const downloadChat = () => {
+  $q.loading.hide();
+
+  const html = editorRef.value.getContentEl();
+
+  //TODO::load font forms
+
+  const co = html.querySelector("#editorContent");
+
+  var val = html2pdmake(`${co.innerHTML}`, {
+    ignoreStyles: ["font-family"],
+    removeTagClasses: true,
+  });
+  var dd = { compress: false, content: JSON.parse(JSON.stringify(val)) };
+
+  console.log(JSON.parse(JSON.stringify(val)));
+  pdfMake.createPdf(dd).download(`${store.title}`.pdf);
+  finishedProcessing.value = false;
+  isProcessingDom.value = false;
 };
 
 const toolbar = [

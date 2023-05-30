@@ -1,70 +1,243 @@
 import { bexBackground } from 'quasar/wrappers'
 import * as cheerio from "cheerio"
+import { async } from 'pdfmake/build/pdfmake'
 var tabId = null
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.action.onClicked.addListener((tab) => {
-    // Opens our extension in a new browser window.
-    // Only if a popup isn't defined in the manifest.
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('www/index.html')
-    }, (/* newTab */) => {
-      tabId = tab.id
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id, allFrames: true },
-        func: () => {
-          setTimeout(() => {
-            const el = document.querySelector("body")
-            const divGroup = document.querySelector('div.group')
-            if (divGroup) {
-              // Select the target node
-              const targetNode = document.body;
-              var chatLength = 0
 
-              var chat = { "request": [], "response": [] }
-              var currentEl = null
+})
+chrome.action.onClicked.addListener((tab) => {
+  // Opens our extension in a new browser window.
+  // Only if a popup isn't defined in the manifest.
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('www/index.html')
+  }, (/* newTab */) => {
+    tabId = tab.id
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id, allFrames: true },
+      func: () => {
+        setTimeout(() => {
+          const el = document.querySelector("body")
+          const divGroup = document.querySelector('div.group')
+          if (divGroup) {
+            // Select the target node
+            const targetNode = document.body;
+            var chatLength = 0
 
-
-              const element = document.querySelector('div.group');
-              if (element) {
-                //
-
-                const elements = document.querySelectorAll("div.flex.flex-col.items-start.gap-4")
-                var elementString = []
-
-                elements.forEach((el) => {
-                  elementString.push(el.innerHTML)
-                })
-
-                //     const myEvent = new CustomEvent('getc', { detail: elementString });
-                window.postMessage({ type: "g", data: elementString }, "*")
-                chrome.runtime.sendMessage({ data: elementString })
-
-                // console.log(elementString, "sent")
+            var chat = { "request": [], "response": [] }
+            var currentEl = null
 
 
-              }
+            const element = document.querySelector('div.group');
+            if (element) {
+              //
+
+              const elements = document.querySelectorAll("div.flex.flex-col.items-start.gap-4")
+              var elementString = []
+
+              elements.forEach((el) => {
+                elementString.push(el.innerHTML)
+              })
+
+              //     const myEvent = new CustomEvent('getc', { detail: elementString });
+              window.postMessage({ type: "g", data: elementString }, "*")
+              chrome.runtime.sendMessage({ data: elementString })
+
+              // console.log(elementString, "sent")
 
 
             }
-          }, 1000)
-        },
-        //  injectImmediately: true
-      })
-      //  console.log("okk opened", tab.status)
-      // Tab opened.
+
+
+          }
+        }, 1000)
+      },
+      //  injectImmediately: true
     })
+    //  console.log("okk opened", tab.status)
+    // Tab opened.
   })
 })
 
+class db {
+
+  constructor(collection) {
+    this.collection = collection
+  }
+
+  //this method write to local storage
+
+  async write(data) {
+    //takes data then insert it
+    const collection = {}
+    collection[this.collection] = data
+
+    await chrome.storage.local.set(collection)
+
+  }
+
+  async hasCollection() {
+    //check if collection exist
+    const collection = new Promise((resolve, reject) => {
+      chrome.storage.local.get(this.collection, item => {
+        if (item !== null || item != {}) {
+
+          resolve(true)
+        }
+        else {
+
+          resolve(false)
 
 
+        }
+      })
+    })
+
+
+    return await collection
+  }
+
+  async createCollection() {
+    //create collection
+
+    if (await this.hasCollection() == false) {
+      const collectionObject = {};
+      collectionObject[this.collection] = {}
+      await chrome.storage.local.set(collectionObject)
+
+      return true
+    }
+
+  }
+
+  async InsertIntoCollection(key, data) {
+
+    if (data != undefined) {
+
+      if (await this.hasCollection()) {
+
+        chrome.storage.local.get(this.collection, async (item) => {
+          const collection = item[this.collection]
+          const ob = {}
+          ob[key] = data
+          const collection2 = { ...ob, ...collection }
+          console.log(collection2, 'col')
+          await this.write(collection2)
+          return true
+
+        })
+      }
+      else {
+        console.error('collection does not exist')
+      }
+
+
+    }
+    else {
+      return false
+    }
+  }
+
+  async getFromCollection({ where, filed, start, limit, all }) {
+
+    const promise = new Promise((resolve, reject) => {
+      chrome.storage.local.get(this.collection, (item) => {
+
+        if (all == false) {
+          const collection = item[this.collection]
+          if (collection != null) {
+            const values = Object.values(collection)
+
+            if (values.length > 0) {
+
+              const slice = values.reverse().slice(start, limit)
+              resolve(slice)
+            }
+            else {
+              resolve([])
+            }
+          }
+          else {
+            resolve([])
+
+          }
+
+
+
+
+        }
+        else {
+
+
+          resolve(item[this.collection])
+
+        }
+
+
+      })
+    })
+
+
+
+    return await promise
+
+  }
+
+  getCollection() {
+    chrome.storage.local.get(this.collection, (item) => {
+      console.log(Object.values(item[this.collection]))
+    })
+  }
+
+  async deletedITem(key) {
+    var success = undefined
+    chrome.storage.local.get(this.collection, (item) => {
+
+      const collection = item[this.collection]
+      if (collection[key] != undefined) {
+
+        if (delete collection[key]) {
+          this.write(collection)
+
+        }
+        else {
+          success = false
+        }
+
+        success = true
+      }
+      else {
+        success = false
+      }
+
+    })
+
+    return success
+  }
+
+  async insertOutIndex(data) {
+    chrome.storage.local.get(this.collection, (item) => {
+      const col = item[this.collection]
+      col[Object.keys(col).length] = data
+      this.write(col)
+    })
+  }
+
+  async cleardb() {
+    await chrome.storage.local.remove(this.collection)
+  }
+
+}
 
 export default bexBackground((bridge /* , allActiveConnections */) => {
 
+  chrome.tabs.onUpdated.addListener((tabId, chanfe_info) => {
+    bridge.send('has_updated')
+    console.log('updated')
+  })
 
   chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log(request, sender, "kkkkkkkpppp")
-    if (sender.origin === "https://chat.openai.com") {
+    if (sender.origin === "https://chat.openai.com" && sender.url.match("https://chat.openai.com/c/+").length > 0 && sender.url.includes('?model=text-davinci-002-render-sha') == false) {
       console.log("sender", sender.url)
       const title = sender.tab.title
       const chat_url = sender.tab.url
@@ -77,7 +250,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
         const element = chat_data[index];
         if ((index + 1) % 2 !== 0) {
 
-          const headings = `<div class="itemCount-${index + 1}" style="font-weight:bold; margin-top:10px; margin-bottom:10px;font-size:18px;">  ${element}  </div>`
+          const headings = `<div class="itemCount-${index + 1}" style="font-weight:bold;font-size:18px;"> <p> ${element} <p> </div>`
           groups.push(headings)
           req.push(element)
         }
@@ -102,53 +275,6 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   bridge.on('log', ({ data, respond }) => {
     console.log(`[BEX] ${data.message}`, ...(data.data || []))
     respond()
-  })
-
-
-
-  bridge.on('getTime', ({ respond }) => {
-    respond(Date.now())
-  })
-
-  bridge.on('storage.get', ({ data, respond }) => {
-    const { key, all, date } = data
-    chrome.storage.local.remove('chats')
-    if (key === null) {
-      chrome.storage.local.get(null, items => {
-        // Group the values up into an array to take advantage of the bridge's chunk splitting.
-        console.log(items, "item")
-        const today = new Date().getDate()
-        var chats = []
-
-
-        for (const chat of Object.values(items)) {
-          const chatDate = new Date(chat.date).getDate()
-          console.log(date,)
-          if (date === chatDate || all) {
-            chats.push(chat)
-          }
-        }
-
-        respond(chats)
-      })
-    } else {
-      chrome.storage.local.get([key], items => {
-        respond(items[key])
-      })
-    }
-  })
-
-
-
-  // Usage:
-  // const { data } = await bridge.send('storage.get', { key: 'someKey' })
-
-  bridge.on('storage.set', ({ data, respond }) => {
-    console.log(data)
-    chrome.storage.local.set({ [data.key]: data.data }, () => {
-      respond()
-      console.log("saved")
-    })
   })
 
   bridge.on('createCollection', async ({ data, respond }) => {
@@ -298,35 +424,46 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     })
   })
 
-  bridge.on("getChats", ({ data, respond }) => {
+
+
+  bridge.on("getChats", async ({ data, respond }) => {
     const { key, start, end, date } = data
 
     //  chrome.storage.local.clear()
 
-    chrome.storage.local.get("chats", (items) => {
-      if (key == null || key == undefined) {
-        if (Object.values(items).length > 0) {
-          const keys = Object.keys(items['chats']).reverse().slice(start, end)
-          const chatData = {}
+    function groupData(dataArray) {
 
-          keys.forEach((key) => {
-            chatData[key] = items['chats'][key]
+      const groupedChats = {}
 
-          })
+      for (const chat of dataArray) {
+        const { date } = chat
+        const onlydate = new Date(date).toLocaleDateString()
 
-          console.log(chatData)
+        if (groupedChats[onlydate] == undefined) {
+          groupedChats[onlydate] = [chat]
 
-          respond(chatData)
         }
-      }
-      else {
-        const value = items['chats'][date][key]
-        console.log(value, "value")
-        respond(value)
+        else {
+          groupedChats[onlydate].unshift(chat)
+        }
+
       }
 
+      return groupedChats
 
-    })
+    }
+
+
+    const database = new db('my_chats')
+    await database.createCollection()
+    const query = { limit: 20, all: false, start: start }
+    const results = await database.getFromCollection(query)
+    console.log(groupData(results))
+
+    respond(groupData(results))
+
+
+
   })
 
   function removeFromCollection(date, url, colName) {
@@ -389,7 +526,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
         }
         else {
 
-          chrome.storage.local.set({ "recent": [chatString] })
+          chrome.storage.local.set({ " recent": [chatString] })
           respond()
 
         }
@@ -499,11 +636,6 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   // Usage:
   // await bridge.send('storage.set', { key: 'someKey', value: 'someValue' })
 
-  bridge.on('storage.remove', ({ data, respond }) => {
-    console.log(data, "delete")
-    chrome.storage.local.remove(data.key, () => {
-      respond(true)
-    })
-  })
+
 
 })
