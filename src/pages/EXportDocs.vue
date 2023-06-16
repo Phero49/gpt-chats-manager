@@ -16,6 +16,7 @@
   <q-page padding>
     <q-card-section :style="isProcessingDom == false ? '' : 'none'">
       <q-editor
+        :dark="dark"
         ref="editorRef"
         flat
         :readonly="readonly"
@@ -53,6 +54,13 @@
               color="white"
               icon="edit"
               label="Edit"
+              size="sm"
+              class="text-white"
+            />
+            <q-toggle
+              v-model="dark"
+              color="white"
+              label="dark"
               size="sm"
               class="text-white"
             />
@@ -137,20 +145,18 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 import html2pdmake from "html-to-pdfmake";
 import hmtl2canvas from "html2canvas";
 pdfMake.vfs = pdfFonts;
-
+const dark = ref(false);
 const isProcessingDom = ref(false);
 const finishedProcessing = ref(false);
 const route = useRoute();
 const readonly = ref(false);
-const { url, date } = route.query;
+const { url } = route.query;
 const selectChat = ref(false);
 const get_chat = async () => {
   if (store.contents.length < 1) {
-    if (date != undefined && url != undefined) {
+    if (url != undefined) {
       const { data, respond } = await $q.bex.send("getSingleChat", {
         key: url,
-
-        date: date,
       });
       if (Object.values(data).length > 0) {
         store.$state = data;
@@ -354,10 +360,8 @@ const save = async () => {
 };
 
 const addToRecent = async () => {
-  if (date != undefined && url != undefined) {
-    const chatString = date + ",," + url;
-    await $q.bex.send("addToRecent", { chatString: chatString });
-    console.log(chatString, { chatString: chatString });
+  if (url != undefined) {
+    await $q.bex.send("addToRecent", { key: url, label: store.title });
   }
 };
 
@@ -416,7 +420,10 @@ if (store.contents.length > 0) {
     const date = new Date().toISOString();
 
     const chatContents = { date: date, ...store.$state };
-    const { data, respond } = await $q.bex.send("saveChats", chatContents);
+    const { data, respond } = await $q.bex.send("saveChats", {
+      key: chatContents.url,
+      content: chatContents,
+    });
     if (data) {
       console.log("saved", chatContents);
       $q.notify({
@@ -424,6 +431,7 @@ if (store.contents.length > 0) {
         color: "red-7",
         textColor: "white",
       });
+      respond();
     }
     //await $q.bex.send("storage.set", { key: store.url, value: chatContents });
   }, 3000);

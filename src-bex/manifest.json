@@ -5,13 +5,7 @@
     "48": "icons/icon-48x48.png",
     "128": "icons/icon-128x128.png"
   },
-  "permissions": [
-    "storage",
-    "tabs",
-    "scripting",
-    "activeTab",
-    "unlimitedStorage"
-  ],
+  "permissions": ["storage", "scripting", "activeTab", "unlimitedStorage"],
   "action": {
     "default_title": "xulhub app"
   },

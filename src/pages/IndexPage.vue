@@ -2,93 +2,48 @@
   <q-page class="" padding>
     <div v-if="Object.keys(chats).length > 0">
       <collection-comp />
-      <q-timeline color="secondary" layout="dense">
+      <q-separator spaced inset dark class="q-my-lg" />
+
+      <div>
+        <div class="text-h6 q-my-sm">Recent chats by date</div>
+        <q-btn color="primary" no-caps icon="event" label="select date" flat>
+          <q-popup-proxy>
+            <q-date v-model="date" minimal landscape />
+          </q-popup-proxy>
+        </q-btn>
+      </div>
+
+      <q-timeline color="black" layout="dense">
         <q-infinite-scroll @load="onLoad" :offset="250">
           <q-timeline-entry
+            color="black"
             :subtitle="new Date(key).toDateString()"
             v-for="(key, index) in Object.keys(chats)"
             :key="index"
           >
-            <div class="row q-gutter-x-md items-start q-gutter-y-lg">
-              <q-card
-                class="col-3 card_bg"
+            <div class="row items-start">
+              <div
+                class="col-md-3"
                 v-for="(values, index) in chats[key]"
                 :key="index"
               >
-                <div class="text-right">
-                  <q-btn color="white" icon="more_horiz" size="sm" flat>
-                    <q-menu>
-                      <q-list style="min-width: 100px" dense separator>
-                        <q-item
-                          clickable
-                          v-close-popup
-                          @click="openDialog({ date: key, url: values.url })"
-                        >
-                          <q-item-section>add to collection </q-item-section>
-                        </q-item>
-                        <q-item clickable v-close-popup>
-                          <q-item-section> Share </q-item-section>
-                        </q-item>
-                        <q-item
-                          clickable
-                          v-close-popup
-                          @click="
-                            deleteChat(values.url, values.title, index, key)
-                          "
-                        >
-                          <q-item-section> Delete </q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-menu>
-                  </q-btn>
+                <div v-if="index < 100">
+                  <chat-card @select-collection="openDialog" :values="values" />
                 </div>
-
-                <q-card-section
-                  class="text-subtitle1 text-bold text-white text-center"
-                >
-                  <div @click="open({ date: key, url: values.url })">
-                    <q-item-label lines="2">
-                      {{
-                        cheerio
-                          .load(
-                            `${
-                              values.title != undefined ? values.title : "null"
-                            }`
-                          )
-                          .text()
-                      }}
-                    </q-item-label>
-                    <q-tooltip>
-                      {{
-                        cheerio
-                          .load(
-                            `${
-                              values.title != undefined ? values.title : "null"
-                            }` ////l
-                          )
-                          .text()
-                      }}
-                    </q-tooltip>
-                  </div>
-                  <div class="text-grey-4">
-                    <small
-                      ><q-icon name="bi-watch" />
-                      <span class="q-mx-md">{{
-                        new Date(values.date).toLocaleTimeString()
-                      }}</span></small
-                    >
-                  </div>
-                </q-card-section>
-                <q-card-section>
-                  <a
-                    :href="values.url"
-                    style="text-decoration: none"
-                    class="text-white text-subtitle1 text-center"
-                    target="_blank"
-                    >Go to chat</a
-                  >
-                </q-card-section>
-              </q-card>
+              </div>
+              <div class="q-mt-lg text-right row justiy-right" v-if="false">
+                <q-btn
+                  color="black"
+                  flat
+                  icon-right="expand_more"
+                  :label="`View all ${Object.keys(chats[key]).length} chats `"
+                  @click="
+                    () => {
+                      limit = Object.keys(chats[key]).length;
+                    }
+                  "
+                />
+              </div>
             </div>
           </q-timeline-entry>
           <template v-slot:loading>
@@ -231,17 +186,16 @@
 <script setup>
 import { useQuasar } from "quasar";
 import { ref, onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
-import * as cheerio from "cheerio";
-import { docStore } from "src/stores/curentDocStore";
+import ChatCard from "src/components/ChatCard.vue";
+
 import CollectionComp from "src/components/CollectionComp.vue";
 import { recent } from "src/stores/recent";
-const store = docStore();
+const date = ref("2023/05/05");
 const recentStore = recent();
-const router = useRouter();
 const feedBack = ref(false);
 const $q = useQuasar();
 const chats = ref([]);
+const limit = ref(100);
 const selectCollectionDialog = ref(false);
 const selectedItem = ref({});
 const selectedCollection = ref("");
@@ -271,7 +225,7 @@ const onLoad = async (index, done) => {
     const newData = { ...chats.value, ...data };
     chats.value = newData;
     respond();
-    done();
+    done(true);
     items += 10;
   } else {
     done(true);
@@ -302,8 +256,8 @@ const filterFn = (val, update, abort) => {
 const addItemToCollection = async () => {
   if (selectedItem.value != undefined) {
     const { data, respond } = await $q.bex.send("addTocollection", {
-      colItem: selectedItem.value,
-      colName: selectedCollection.value,
+      itemData: selectedItem.value,
+      collectionName: selectedCollection.value,
     });
 
     const { error, msg } = data;
@@ -340,21 +294,7 @@ async function getChats() {
 const getRecent = async () => {
   const { data, respond } = await $q.bex.send("getRecent");
   if (data) {
-    for (const iterator of data) {
-      if (iterator != null) {
-        const [date, url] = iterator.split(",,");
-        const { data, respond } = await $q.bex.send("getChats", {
-          key: url,
-
-          date: date,
-        });
-        recentStore.recent.push({
-          label: cheerio.load(data.title).text(),
-          date: date,
-          url: url,
-        });
-      }
-    }
+    recentStore.recent = data;
   }
 };
 
@@ -366,31 +306,6 @@ onMounted(async () => {
 onUnmounted(() => {
   recentStore.$reset();
 });
-function open(data) {
-  const { date, url } = data;
-
-  // store.$patch({ ...doc });
-  router.push(`/exportDocs?date=${date}&url=${url}`);
-}
-
-async function deleteChat(url, title, index, key) {
-  console.log("called");
-  title = cheerio.load(`${title != undefined ? title : "null"}`).text();
-  const deleted = await $q.bex.send("removeChat", {
-    date: key,
-    url: url,
-  });
-
-  if (deleted) {
-    console.log(chats.value[key]);
-    delete chats.value[key][url];
-    $q.notify({
-      message: `${title} , chat successfully removed`,
-      color: "red-7",
-      textColor: "white",
-    });
-  }
-}
 </script>
 
 <style scoped>

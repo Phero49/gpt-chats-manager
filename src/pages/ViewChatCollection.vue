@@ -10,7 +10,11 @@
     </div>
     <q-card-section>
       <div class="row items-start q-gutter-y-lg">
-        <div class="col-4" v-for="(values, index) in chats" :key="index">
+        <div
+          class="col-4"
+          v-for="(key, index) in Object.keys(chats)"
+          :key="index"
+        >
           <q-card class="rounded q-ma-md">
             <div class="text-right">
               <q-btn color="black" icon="more_horiz" size="sm" flat>
@@ -25,7 +29,7 @@
                     <q-item
                       clickable
                       v-close-popup
-                      @click="deleteChat(values.url, values.title, index)"
+                      @click="deleteChat($route.params.collection, key)"
                     >
                       <q-item-section> Delete </q-item-section>
                     </q-item>
@@ -37,12 +41,16 @@
             <q-card-section
               class="text-subtitle1 text-weight-medium text-black text-center"
             >
-              <div id="goTo" @click="open(index, values, values.url)">
+              <div id="goTo" @click="open(key)">
                 <q-item-label lines="1">
                   {{
                     cheerio
                       .load(
-                        `${values.title != undefined ? values.title : "null"}`
+                        `${
+                          chats[key]["title"] != undefined
+                            ? chats[key]["title"]
+                            : "null"
+                        }`
                       )
                       .text()
                   }}
@@ -51,7 +59,11 @@
                   {{
                     cheerio
                       .load(
-                        `${values.title != undefined ? values.title : "null"}`
+                        `${
+                          chats[key]["title"] != undefined
+                            ? chats[key]["title"]
+                            : "null"
+                        }`
                       )
                       .text()
                   }}
@@ -61,14 +73,14 @@
                 <small
                   ><q-icon name="bi-watch" />
                   <span class="q-mx-md">{{
-                    new Date(values.date).toLocaleTimeString()
+                    new Date(chats[key]["date"]).toLocaleTimeString()
                   }}</span></small
                 >
               </div>
             </q-card-section>
             <q-card-section>
               <a
-                :href="values.url"
+                :href="key"
                 style="text-decoration: none"
                 class="text-blue text-subtitle1 text-center"
                 target="_blank"
@@ -94,9 +106,8 @@ const route = useRoute();
 const { collection } = route.params;
 const $q = useQuasar();
 const chats = ref([]);
-function open(index, doc, url) {
-  store.$patch({ ...doc });
-  router.push(`/exportDocs?${url}`);
+function open(url) {
+  router.push(`/exportDocs?url=${url}`);
 }
 const collectionItem = async () => {
   if (collection != undefined) {

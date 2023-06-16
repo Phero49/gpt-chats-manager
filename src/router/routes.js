@@ -2,17 +2,25 @@
 const routes = [
   {
     path: '/',
+
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') },
+      { name: 'home', path: '', component: () => import('pages/IndexPage.vue') },
       {
         name: "editChat",
         path: '/exportDocs', component: () => import('pages/EXportDocs.vue')
       },
 
-      { path: '/help', component: () => import('pages/HelpPage.vue') },
-      { path: '/chat-collections', component: () => import('pages/CollectionsPage.vue') },
-      { path: '/chat-collection/:collection', component: () => import('pages/ViewChatCollection.vue') }
+      {
+        path: '/help',
+        name: 'help',
+        component: () => import('pages/HelpPage.vue')
+      },
+      {
+        name: 'collections', path: '/chat-collections',
+        component: () => import('pages/CollectionsPage.vue')
+      },
+      { name: 'collectionsItems', path: '/chat-collection/:collection', component: () => import('pages/ViewChatCollection.vue') }
     ]
   },
 

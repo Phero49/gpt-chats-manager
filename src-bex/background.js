@@ -1,6 +1,7 @@
 import { bexBackground } from 'quasar/wrappers'
 import * as cheerio from "cheerio"
 import { async } from 'pdfmake/build/pdfmake'
+import { db, myCollections } from "./db"
 var tabId = null
 chrome.runtime.onInstalled.addListener(() => {
 
@@ -58,175 +59,7 @@ chrome.action.onClicked.addListener((tab) => {
   })
 })
 
-class db {
-
-  constructor(collection) {
-    this.collection = collection
-  }
-
-  //this method write to local storage
-
-  async write(data) {
-    //takes data then insert it
-    const collection = {}
-    collection[this.collection] = data
-
-    await chrome.storage.local.set(collection)
-
-  }
-
-  async hasCollection() {
-    //check if collection exist
-    const collection = new Promise((resolve, reject) => {
-      chrome.storage.local.get(this.collection, item => {
-        if (item !== null || item != {}) {
-
-          resolve(true)
-        }
-        else {
-
-          resolve(false)
-
-
-        }
-      })
-    })
-
-
-    return await collection
-  }
-
-  async createCollection() {
-    //create collection
-
-    if (await this.hasCollection() == false) {
-      const collectionObject = {};
-      collectionObject[this.collection] = {}
-      await chrome.storage.local.set(collectionObject)
-
-      return true
-    }
-
-  }
-
-  async InsertIntoCollection(key, data) {
-
-    if (data != undefined) {
-
-      if (await this.hasCollection()) {
-
-        chrome.storage.local.get(this.collection, async (item) => {
-          const collection = item[this.collection]
-          const ob = {}
-          ob[key] = data
-          const collection2 = { ...ob, ...collection }
-          console.log(collection2, 'col')
-          await this.write(collection2)
-          return true
-
-        })
-      }
-      else {
-        console.error('collection does not exist')
-      }
-
-
-    }
-    else {
-      return false
-    }
-  }
-
-  async getFromCollection({ where, filed, start, limit, all }) {
-
-    const promise = new Promise((resolve, reject) => {
-      chrome.storage.local.get(this.collection, (item) => {
-
-        if (all == false) {
-          const collection = item[this.collection]
-          if (collection != null) {
-            const values = Object.values(collection)
-
-            if (values.length > 0) {
-
-              const slice = values.reverse().slice(start, limit)
-              resolve(slice)
-            }
-            else {
-              resolve([])
-            }
-          }
-          else {
-            resolve([])
-
-          }
-
-
-
-
-        }
-        else {
-
-
-          resolve(item[this.collection])
-
-        }
-
-
-      })
-    })
-
-
-
-    return await promise
-
-  }
-
-  getCollection() {
-    chrome.storage.local.get(this.collection, (item) => {
-      console.log(Object.values(item[this.collection]))
-    })
-  }
-
-  async deletedITem(key) {
-    var success = undefined
-    chrome.storage.local.get(this.collection, (item) => {
-
-      const collection = item[this.collection]
-      if (collection[key] != undefined) {
-
-        if (delete collection[key]) {
-          this.write(collection)
-
-        }
-        else {
-          success = false
-        }
-
-        success = true
-      }
-      else {
-        success = false
-      }
-
-    })
-
-    return success
-  }
-
-  async insertOutIndex(data) {
-    chrome.storage.local.get(this.collection, (item) => {
-      const col = item[this.collection]
-      col[Object.keys(col).length] = data
-      this.write(col)
-    })
-  }
-
-  async cleardb() {
-    await chrome.storage.local.remove(this.collection)
-  }
-
-}
+//chrome.identity.getAuthToken()
 
 export default bexBackground((bridge /* , allActiveConnections */) => {
 
@@ -272,179 +105,114 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   });
 
 
-  bridge.on('log', ({ data, respond }) => {
-    console.log(`[BEX] ${data.message}`, ...(data.data || []))
-    respond()
-  })
-
   bridge.on('createCollection', async ({ data, respond }) => {
-    const { colName } = data
-    const date = Date.now()
-    //get collections
-    var col = await chrome.storage.local.get('collections')
-    const colls = col['collections']
-    //check if it not empty
+    const { collectionName } = data
+    const database = new db(myCollections.folders)
+    await database.createCollection()
 
-    console.log(colls, colName)
-    if (Object.values(col).length > 0) {
-      const getName = colls[colName]
-      //check if name already exist
-      if (getName == undefined) {
+    const res1 = await database.getOne(collectionName)
+    if (res1 != null) {
 
-        colls[colName] = { date: date, cols: [] }
-        await chrome.storage.local.set(col)
-
-        respond({ error: false, msg: "ok" })
-      }
-      else {
-
-        respond({ error: true, msg: "name already exist" })
-      }
-
+      respond({ error: true, msg: "collection already exist" })
 
     }
     else {
 
-      const collection = {}
-      collection[colName] = { date: date, cols: [] }
+      await database.InsertIntoCollection(collectionName, {})
 
-      await chrome.storage.local.set({ ['collections']: collection })
       respond({ error: false, msg: "ok" })
 
     }
+
   })
 
   bridge.on('getCollections', async ({ data, respond }) => {
     const { all } = data
-    var col = await chrome.storage.local.get('collections')
+    const database = new db(myCollections.folders)
+    const query = { all: true, object: true }
+    const results = await database.getMany(query)
+    if (all) {
 
-    if (Object.values(col).length > 0) {
-      const colls = col['collections']
-      if (!all) {
-        const keys = Object.keys(colls).slice(0, 3)
-        respond(keys)
-      }
-      else {
 
-        const keys = Object.keys(colls)
-        respond(keys)
+      respond(Object.keys(results))
 
-      }
     }
+    else {
+
+      const first4 = Object.keys(results).slice(0, 4)
+      respond(first4)
+
+    }
+
+
+
+
+
+
 
   })
 
   bridge.on('getCollectionItems', async ({ data, respond }) => {
     const { key } = data
-    const getCollection = await chrome.storage.local.get('collections')
-    const collection = getCollection['collections'][key]['cols']
-
-    chrome.storage.local.get("chats", (items) => {
-
-      var chats = []
-
-      for (const iterator of collection) {
-        const { date, url } = iterator['item']
-        const collItem = items['chats'][date][url]
-        chats.unshift(collItem)
-      }
-
-      console.log(chats)
-      respond(chats)
-
-    })
+    const database = new db(myCollections.folders)
+    const results = await database.getOne(key)
+    console.log(results)
+    respond(results)
 
   })
+
 
   bridge.on('addTocollection', async ({ data, respond }) => {
-    const { colName } = data
-    const { colItem } = data
-    const date = Date.now()
-    //chrome.storage.local.remove('collections')
-    //get collections
-    const col = await chrome.storage.local.get('collections')
-    //check if it not empty
-    const coll = col['collections']
-    if (Object.keys(col).length > 0) {
-      console.log(colName)
-      const getName = coll[colName]
-      //check if name already exist
-      console.log("hello therei", getName,)
+    const { collectionName } = data
+    const { itemData } = data
+    const { key } = itemData
 
-      if (getName != undefined) {
-        const collectionItems = coll[colName]['cols']
-        var hasITem = false
-        for (const iterator of collectionItems) {
-          console.log(iterator)
-          const { date, item } = iterator
-          if (item.url == colItem.url) {
-            hasITem = true
-            break
-          }
+    const database = new db(myCollections.folders)
+    const folder = await database.getOne(collectionName)
+    console.log(folder)
+    delete itemData['key']
+    folder[key] = itemData
 
-        }
+    await database.InsertIntoCollection(collectionName, folder)
+    console.log(folder, key)
+    respond(true)
 
-
-        console.log(coll[colName]['cols'], hasITem)
-        if (!hasITem) {
-          coll[colName]['cols'].unshift({ item: { ...colItem }, date: date })
-          chrome.storage.local.set({ ["collections"]: coll })
-          respond({ error: false, msg: "ok" })
-
-        }
-        else {
-          respond({ error: true, msg: "item already exist" })
-
-        }
-      }
-      else {
-
-        respond({ error: true, msg: "collection does not  exist" })
-      }
-
-
-    }
-    else {
-
-      const collection = {}
-      collection[colName] = [{ item: colName, date: date }]
-
-      chrome.storage.local.set({ ['collection']: collection })
-
-    }
   })
 
-  bridge.on("getSingleChat", ({ data, respond }) => {
-    console.log("oo")
-    const { key, date } = data
-    chrome.storage.local.get("chats", (items) => {
-      const value = items['chats'][date][key]
-      console.log(value)
-      respond(value)
-    })
+  bridge.on('deleteCollection', async ({ data, respond }) => {
+    const { key } = data
+    const database = new db(myCollections.folders)
+    await database.deletedITem(key)
+    respond(true)
+
+  })
+
+  bridge.on("getSingleChat", async ({ data, respond }) => {
+    const database = new db('my_chats')
+    const { key } = data
+    const results = await database.getOne(key)
+    respond(results)
+
   })
 
 
 
   bridge.on("getChats", async ({ data, respond }) => {
     const { key, start, end, date } = data
-
-    //  chrome.storage.local.clear()
-
     function groupData(dataArray) {
 
-      const groupedChats = {}
+      const groupedChats = new Map()
 
       for (const chat of dataArray) {
         const { date } = chat
         const onlydate = new Date(date).toLocaleDateString()
 
         if (groupedChats[onlydate] == undefined) {
-          groupedChats[onlydate] = [chat]
+          groupedChats.set(onlydate, chat)
 
         }
         else {
-          groupedChats[onlydate].unshift(chat)
+          groupedChats[onlydate].push(chat)
         }
 
       }
@@ -456,13 +224,10 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
     const database = new db('my_chats')
     await database.createCollection()
-    const query = { limit: 20, all: false, start: start }
-    const results = await database.getFromCollection(query)
-    console.log(groupData(results))
-
+    const query = { limit: 100, all: true, start: 0 }
+    const results = await database.getMany(query)
+    console.log(results)
     respond(groupData(results))
-
-
 
   })
 
@@ -494,64 +259,20 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   }
 
   bridge.on("addToRecent", async ({ data, respond }) => {
-    const { chatString } = data
-    await chrome.storage.local.remove("recent")
-    if (chatString != null) {
-      chrome.storage.local.get("recent", (items) => {
-        const recent = items['recent']
-
-        if (recent != undefined) {
-          const indexOf = recent.indexOf(chatString)
-          console.log(indexOf, "pppppp")
-          if (indexOf < 0) {
-            const length = recent.unshift(chatString)
-            if (length > 15) {
-              recent.pop()
-            }
-            chrome.storage.local.set({ "recent": recent })
-
-          }
-          else {
-            const item = recent.splice(indexOf, 1)
-            recent.unshift(item[0])
-            chrome.storage.local.set({ "recent": recent })
-
-
-          }
-
-          respond()
-
-
-
-        }
-        else {
-
-          chrome.storage.local.set({ " recent": [chatString] })
-          respond()
-
-        }
-
-      })
-    }
-    else {
-      respond([])
-    }
-
-
-
+    const { key, label } = data
+    const database = new db(myCollections.recent)
+    database.createCollection()
+    await database.InsertIntoCollection(key, label, 20)
 
   })
 
 
-  bridge.on("getRecent", ({ data, respond }) => {
-    //get recent opened chats
-    //chrome.storage.local.remove("recent")
-    chrome.storage.local.get("recent", (items) => {
-      console.log(items)
-      respond(items["recent"])
+  bridge.on("getRecent", async ({ data, respond }) => {
 
-
-    })
+    const database = new db(myCollections.recent)
+    const query = { all: true, object: true }
+    const results = await database.getMany(query)
+    respond(results)
 
 
   })
@@ -578,54 +299,17 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     })
 
   })
-  bridge.on("saveChats", ({ data, respond }) => {
-
+  bridge.on("saveChats", async ({ data, respond }) => {
+    const { key, content } = data
     //geting key and date from the saved item
-    var date1 = data.date
-    const url = data.url
 
-    const date = new Date(date1).toLocaleDateString()
+    const database = new db(myCollections.my_chats)
 
 
-    if (url != undefined) {
-      chrome.storage.local.get("chats", items => {
+    if (key != undefined) {
 
-        if (Object.values(items).length > 0) {
-          //check if chats are empty  
+      await database.InsertIntoCollection(key, content)
 
-          const getChatByDate = Object.keys(items['chats']).includes(date)
-          console.log(getChatByDate, "has date")
-          if (getChatByDate) {
-
-            //check if there are chats for the dete
-            console.log(url)
-            items['chats'][date][url] = data
-            console.log(items['chats'], "chats")
-            // items['chats'][date] = { ...{ url: key, data: data }, ...items['chats'][date] }
-            chrome.storage.local.set({ "chats": items['chats'] })
-
-          }
-          else {
-            //if no chats for the date
-
-            items['chats'][date] = {}
-            items['chats'][date][url] = data
-
-            chrome.storage.local.set(items)
-
-          }
-
-
-        }
-        else {
-          const chats = { "chats": {} };
-          chats['chats'][date] = {};
-          chats['chats'][date][url] = data
-          chrome.storage.local.set(chats);
-          console.log(chats, "no chtas")
-        }
-        respond(true)
-      })
     }
     else {
       respond(false)

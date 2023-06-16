@@ -1,6 +1,11 @@
 <template>
-  <q-layout view="lHh Lpr lff">
-    <q-header v-if="$route.name != 'editChat'" elevated class="bg-grey-8">
+  <q-layout view="lHh LpR fff">
+    <q-header
+      v-if="$route.name != 'editChat'"
+      :elevated="false"
+      bordered
+      class="bg-grey-8"
+    >
       <q-toolbar>
         <q-toolbar-title
           ><q-icon name="manager" /> Chats Manager
@@ -67,9 +72,17 @@
         </div>
       </div>
     </q-footer>
-    <q-drawer v-model="leftDrawerOpen" show-if-above>
+
+    <q-drawer
+      v-if="$route.name !== 'collectionsItems' && $route.name !== 'collections'"
+      bordered
+      v-model="leftDrawerOpen"
+      show-if-above
+    >
       <q-list v-mutation="handler" v-if="$route.name == 'editChat'">
-        <q-item-label header>chat Contents </q-item-label>
+        <div class="text-body1 text-weight-medium text-center q-my-md">
+          Chat outline
+        </div>
         <div
           id="container"
           @click="
@@ -123,25 +136,41 @@
           </div>
         </div>
       </q-list>
-
-      <q-list dense v-if="$route.path === '/'">
-        <div class="text-subtitle1 q-py-md text-center">
-          Recently opened chats
-        </div>
-
-        <q-item
-          v-for="(item, i) in recentStore.recent"
-          :to="`/exportDocs?date=${item['date']}&url=${item['url']}`"
-          :key="i"
+      <!--recent chats-->
+      <q-scroll-area
+        style="overflow-x: hidden"
+        class="fit"
+        :thumb-style="{
+          right: '2px',
+          borderRadius: '5px',
+          backgroundColor: 'white',
+          width: '5px',
+          opacity: '0.75',
+        }"
+      >
+        <q-list
+          v-if="$route.path === '/'"
+          separator
+          class="bg-grey-10 text-white q-px-sm"
         >
-          <q-item-label lines="2" header>
-            {{ item.label }}
-          </q-item-label>
-        </q-item>
-      </q-list>
+          <div class="text-body1 q-py-md">
+            <q-icon name="recent" /> Recently opened chats
+          </div>
+
+          <q-item
+            v-for="(key, i) in Object.keys(recentStore.recent)"
+            :to="`/exportDocs?url=${key}`"
+            :key="i"
+          >
+            <q-item-label lines="1" class="text-white" caption>
+              {{ cheerio.load(recentStore.recent[key]).text() }}
+            </q-item-label>
+          </q-item>
+        </q-list>
+      </q-scroll-area>
     </q-drawer>
 
-    <q-page-container class="bg-grey-3">
+    <q-page-container>
       <router-view />
     </q-page-container>
   </q-layout>
@@ -149,6 +178,8 @@
 
 <script setup>
 import { defineComponent, ref, onMounted, onUnmounted } from "vue";
+import * as cheerio from "cheerio";
+
 import { useQuasar } from "quasar";
 import { useRouter } from "vue-router";
 import { makeEven } from "src/js/getIds";
@@ -159,13 +190,18 @@ import {
   getAuth,
   signInWithPopup,
   GoogleAuthProvider,
+  signInWithRedirect,
   onAuthStateChanged,
 } from "firebase/auth";
+
 const auth = getAuth();
 const apiKey = auth.app.options.apiKey;
 
-const authi = () => {
-  window.location = "sandbox.html";
+const authi = async () => {
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
+
+  $q.notify("Text has been highlighted");
 };
 const clientID =
   "468883781787-l5l5p17fsl57h0c9b129c3ju3ldmsfol.apps.googleusercontent.com";
@@ -288,6 +324,9 @@ function onDragEnter(index, e) {
   console.log(e);
 }
 
+const exportchat = async () => {
+  const { data, respond } = await $q.bex.send("exportChat", {});
+};
 function onDrop(index, e) {
   // Get the dragged item and remove it from the contents array
   let draggedItem = store.contents.splice(draggedItemIndex.value, 1)[0];
