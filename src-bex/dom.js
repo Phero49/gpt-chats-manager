@@ -4,33 +4,64 @@ import { bexDom } from 'quasar/wrappers'
 
 export default bexDom((bridge) => {
 
-  bridge.on('has_updated', ({ data, respond }) => {
-    console.log('hello world')
+  //this function exports the chat
+  const exportBtn = () => {
+    const divGroup = document.querySelector('div.group')
+    if (divGroup) {
+      // Select the target node
 
-  })
+
+      const element = document.querySelector('div.group');
+      if (element) {
+        //
+
+        const elements = document.querySelectorAll("div.flex.flex-col.items-start.gap-4")
+        var elementString = []
+
+        elements.forEach((el) => {
+          elementString.push(el.innerHTML)
+        })
+
+        //     const myEvent = new CustomEvent('getc', { detail: elementString });
+        window.postMessage({ type: "g", data: elementString }, "*")
+        chrome.runtime.sendMessage('gptchatsmanager', { data: elementString })
+
+
+
+      }
+
+
+    }
+
+  }
 
   const observer = new MutationObserver((mutations, observe) => {
+
+
+
+
 
     for (const mutation of mutations) {
       const { target } = mutation
       const getbtn = target.querySelector('.border-t')
-      console.log(getbtn)
+      const customBtn = document.body.querySelector('#exportchat')
       if (getbtn != null) {
         if (getbtn.parentElement != null || getbtn.parentElement != undefined) {
-          observe.disconnect()
-          let btn = `<button id="exportchat" class="btn ml-4 relative text-green btn-neutral border-0 md:border">
+          if (customBtn === null) {
+            let btn = `<button id="exportchat" class="btn ml-4 relative text-green btn-neutral border-0 md:border">
       Export chat
     </button>`
-          const parser = new DOMParser()
-          const parsedEl = parser.parseFromString(btn, 'text/html')
-          getbtn.parentElement.appendChild(parsedEl.querySelector("button"))
-          console.log(getbtn.parentElement)
-          document.querySelector("#exportchat").addEventListener('click', () => {
-            getChat()
-            console.log('export')
-          })
+            const parser = new DOMParser()
+            const parsedEl = parser.parseFromString(btn, 'text/html')
+            parsedEl.addEventListener('click', () => {
+              //func()
+            })
+            getbtn.parentElement.appendChild(parsedEl.querySelector("button"))
 
-          break
+
+            break
+          }
+
         }
 
       }
@@ -41,6 +72,8 @@ export default bexDom((bridge) => {
 
 
   })
+
+
   observer.observe(document.body, { childList: true, subtree: true, })
   /*
   bridge.send('message.to.quasar', {
