@@ -1,6 +1,5 @@
 import { bexBackground } from 'quasar/wrappers'
 import * as cheerio from "cheerio"
-import { async } from 'pdfmake/build/pdfmake'
 import { db, myCollections } from "./db"
 var tabId = null
 chrome.runtime.onInstalled.addListener(() => {
@@ -59,7 +58,6 @@ chrome.action.onClicked.addListener((tab) => {
   })
 })
 
-//chrome.identity.getAuthToken()
 
 export default bexBackground((bridge /* , allActiveConnections */) => {
 
@@ -123,6 +121,14 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       respond({ error: false, msg: "ok" })
 
     }
+
+  })
+
+  bridge.on('exportdb', async ({ data, respond }) => {
+    const database = new db()
+    const json = await database.exportdb()
+
+    respond(json)
 
   })
 
@@ -199,35 +205,53 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
   bridge.on("getChats", async ({ data, respond }) => {
     const { key, start, end, date } = data
+
     function groupData(dataArray) {
+      // Create an empty object to hold the grouped chats
+      const groupedChats = {};
 
-      const groupedChats = new Map()
-
+      // Iterate over each chat in the dataArray
       for (const chat of dataArray) {
-        const { date } = chat
-        const onlydate = new Date(date).toLocaleDateString()
+        // Extract the date from the chat object
+        const { date } = chat;
 
+        // Convert the date to a localized string representing only the date (without the time)
+        const onlydate = new Date(date).toLocaleDateString();
+
+        // Check if a group with the same date already exists in groupedChats
         if (groupedChats[onlydate] == undefined) {
-          groupedChats.set(onlydate, chat)
-
+          // If the group doesn't exist, create a new group with the chat
+          groupedChats[onlydate] = [chat];
+        } else {
+          // If the group already exists, add the chat to the existing group
+          groupedChats[onlydate].push(chat);
         }
-        else {
-          groupedChats[onlydate].push(chat)
-        }
-
       }
 
-      return groupedChats
-
+      // Return the object containing the grouped chats
+      return groupedChats;
     }
 
 
     const database = new db('my_chats')
     await database.createCollection()
     const query = { limit: 100, all: true, start: 0 }
+    //fetch raw chats
     const results = await database.getMany(query)
-    console.log(results)
-    respond(groupData(results))
+    //group chats
+    const groupedData = groupData(results)
+
+    const keys = Object.keys(groupedData).sort((a, b) => {
+      const date1 = new Date(a).getTime();
+      const date2 = new Date(b).getTime();
+
+      return date2 - date2;
+    });
+
+    console.log(keys)
+
+
+    respond(groupedData)
 
   })
 
