@@ -1,28 +1,94 @@
 <template>
   <div class="row justify-between">
+    <!--title-->
     <div class="text-h6 q-my-md text-capitalize">chats collections</div>
   </div>
   <div class="row justify-between items-center q-mx-lg q-px-md">
     <div>
       <div class="" v-if="collectionNames.length > 0">
-        <q-card-section>
-          <q-card-actions>
-            <div
-              v-for="(colName, i) in collectionNames"
-              :key="i"
-              style="width: 220px; cursor: grab"
-              @mouseenter="mouseOver = i"
-              @mouseleave="mouseOver = null"
-            >
+        <div class="row">
+          <div
+            v-for="(colName, i) in collectionNames"
+            :key="i"
+            style="cursor: grab; position: relative"
+            @mouseenter="mouseOver = i"
+            @mouseleave="mouseOver = null"
+          >
+            <!--iterate the collections-->
+            <div class="q-mr-lg q-my-md">
               <q-card
-                :class="mouseOver == i ? ' bg-blue-3 shadow-5' : ''"
-                class="my-card q-mr-lg q-my-md"
+                class="my-card length"
+                style="position: absolute; z-index: -1"
+              >
+                <div class="q-px-sm">
+                  <div
+                    @click="
+                      () => {
+                        $router.push(`/chat-collection/${colName}`);
+                      }
+                    "
+                    class="flex q-pt-sm flex-center"
+                  >
+                    <q-avatar
+                      size="50px"
+                      font-size="40px"
+                      color="black"
+                      :text-color="mouseOver == i ? 'primary' : 'white'"
+                      icon="folder"
+                    />
+                  </div>
+
+                  <q-card-section>
+                    <div
+                      v-if="edit == null || edit != i"
+                      class="text-medium ellipsis text-center"
+                      :class="mouseOver == i ? 'white' : 'black'"
+                    >
+                      {{ colName }}
+                    </div>
+                    <div v-if="edit == i">
+                      <q-input
+                        v-model="editName"
+                        type="text"
+                        label="editColName"
+                        dense
+                      >
+                        <template #append>
+                          <div>
+                            <q-icon name="edit" />
+                          </div>
+                        </template>
+                      </q-input>
+                      <q-btn
+                        color="green"
+                        icon="send"
+                        class="full-width"
+                        dense
+                        size="sm"
+                        unelevated
+                        label="save"
+                        @click="submitChange(i)"
+                      />
+                    </div>
+                  </q-card-section>
+                </div>
+              </q-card>
+              <q-card
+                :style="mouseOver == i ? 'opacity:1;' : 'opacity:0;'"
+                class="length"
+                style="background-color: rgba(196, 194, 194, 0)"
+                @click="
+                  () => {
+                    $router.push(`/chat-collection/${colName}`);
+                  }
+                "
               >
                 <div class="text-right">
                   <q-btn
-                    :style="mouseOver ? ' display:inline ;' : 'none'"
+                    :style="
+                      mouseOver == i ? ' display:inline ;' : 'display:none'
+                    "
                     color="black"
-                    size="sm"
                     flat
                     dense
                     style="margin: 0px"
@@ -49,67 +115,10 @@
                     </q-menu>
                   </q-btn>
                 </div>
-                <div class="q-px-sm">
-                  <div
-                    @click="
-                      () => {
-                        $router.push(`/chat-collection/${colName}`);
-                      }
-                    "
-                    class="flex q-pt-sm flex-center"
-                  >
-                    <q-avatar
-                      size="50px"
-                      font-size="40px"
-                      color="black"
-                      :text-color="mouseOver == i ? 'primary' : 'white'"
-                      icon="folder"
-                    />
-                  </div>
-
-                  <q-card-section>
-                    <div
-                      @click="
-                        () => {
-                          $router.push(`/chat-collection/${colName}`);
-                        }
-                      "
-                      v-if="edit == null || edit != i"
-                      class="text-medium ellipsis text-center"
-                      :class="mouseOver == i ? 'white' : 'black'"
-                    >
-                      {{ colName }}
-                    </div>
-                    <div v-if="edit == i">
-                      <q-input
-                        v-model="editName"
-                        type="text"
-                        label="editColName"
-                        dense
-                      >
-                        <template v-slot:append>
-                          <div>
-                            <q-icon name="edit" />
-                          </div>
-                        </template>
-                      </q-input>
-                      <q-btn
-                        color="green"
-                        icon="send"
-                        class="full-width"
-                        dense
-                        size="sm"
-                        unelevated
-                        label="save"
-                        @click="submitChange(i)"
-                      />
-                    </div>
-                  </q-card-section>
-                </div>
               </q-card>
             </div>
-          </q-card-actions>
-        </q-card-section>
+          </div>
+        </div>
       </div>
       <div v-else>
         <q-card-section>
@@ -161,7 +170,7 @@
               :error="colNameErr"
               label="collection name"
             >
-              <template v-slot:prepend>
+              <template #prepend>
                 <div>
                   <q-icon name="folder" />
                 </div>
@@ -223,8 +232,6 @@ const editCollectiname = async (collName, index) => {
 };
 
 const submitChange = async (index) => {
-  if (editName.value != collectionNames[index]) {
-  }
   const { data } = await $q.bex.send("editCollection", {
     key: collectionNames.value[index],
     newName: editName.value,
@@ -236,7 +243,7 @@ const submitChange = async (index) => {
 };
 
 const deleteCollection = async (collectionName, index) => {
-  const { data, respond } = await $q.bex.send("deleteCollection", {
+  const { data } = await $q.bex.send("deleteCollection", {
     key: collectionName,
   });
   if (data) {
@@ -292,3 +299,9 @@ onMounted(async () => {
   await getCollections();
 });
 </script>
+<style scoped>
+.length {
+  width: 200px;
+  height: 120px;
+}
+</style>
