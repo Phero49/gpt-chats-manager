@@ -1,6 +1,16 @@
+<!-- eslint-disable vue/require-default-prop -->
 <template>
-  <div @mouseenter="onMouseOver = true" @mouseleave="onMouseOver = false">
-    <q-card class="q-ma-lg" :class="onMouseOver ? 'bg-blue-grey-8' : ''">
+  {{}}
+  <div
+    @mouseenter="onMouseOver = true"
+    @mouseleave="onMouseOver = false"
+    style="cursor: grab; position: relative"
+  >
+    <q-card
+      class="q-ma-lg"
+      bordered
+      :class="onMouseOver ? 'bg-blue-grey-8' : ''"
+    >
       <div class="text-right">
         <q-btn
           color="white"
@@ -91,13 +101,13 @@
 <script setup>
 import * as cheerio from "cheerio";
 import { useQuasar } from "quasar";
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 const router = useRouter();
 const onMouseOver = ref(false);
-const isActive = ref(false);
 const $q = useQuasar();
-const props = defineProps({ values: Object });
+// eslint-disable-next-line vue/require-default-prop
+defineProps({ values: {} });
 const emits = defineEmits(["selectCollection"]);
 function open(data) {
   const { url } = data;
@@ -114,8 +124,6 @@ async function deleteChat(url, title, index, key) {
   });
 
   if (deleted) {
-    console.log(chats.value[key]);
-    delete chats.value[key][url];
     $q.notify({
       message: `${title} , chat successfully removed`,
       color: "red-7",
