@@ -11,11 +11,7 @@ const routes = [
         path: '/exportDocs', component: () => import('pages/EXportDocs.vue')
       },
 
-      {
-        path: '/help',
-        name: 'help',
-        component: () => import('pages/HelpPage.vue')
-      },
+
       {
         name: 'collections', path: '/chat-collections',
         component: () => import('pages/CollectionsPage.vue')
