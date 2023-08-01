@@ -1,18 +1,4 @@
 <template>
-  <q-dialog v-model="selectChat" persistent>
-    <q-card>
-      <q-card-section class="row items-center">
-        <q-avatar icon="signal_wifi_off" color="primary" text-color="white" />
-        <span class="q-ml-sm"
-          >You are currently not connected to any network.</span
-        >
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn flat label="Turn on Wifi" color="primary" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
   <q-page padding>
     <q-card-section :style="isProcessingDom == false ? '' : 'none'">
       <q-editor
@@ -23,7 +9,6 @@
         :toolbar-color="'blue'"
         :toolbar-text-color="'white'"
         :toolbar-bg="'blue'"
-        class="bg-grey-3"
         v-model="editor"
         min-height="5rem"
         :toolbar="toolbar"
@@ -39,28 +24,20 @@
           verdana: 'Verdana',
         }"
       >
-        <template v-slot:token>
+        <template #token>
           <q-card-actions align="center">
             <q-btn
               flat
               size="sm"
               color="white"
-              label="home"
-              icon="home"
-              to="/"
+              icon="arrow_back"
+              @click="$router.back()"
             />
             <q-toggle
               v-model="readonly"
               color="white"
               icon="edit"
               label="Edit"
-              size="sm"
-              class="text-white"
-            />
-            <q-toggle
-              v-model="dark"
-              color="white"
-              label="dark"
               size="sm"
               class="text-white"
             />
@@ -72,6 +49,20 @@
     <q-card-section v-show="isProcessingDom == false"> </q-card-section>
     <q-page-sticky position="bottom-right" :offset="[18, 18]" expand>
       <q-card-actions align="center" vertical>
+        <q-btn
+          unelevated
+          label="save"
+          color="primary"
+          icon="save"
+          @click="save"
+          :loading="isSaving"
+        >
+          <template #loading>
+            <div>
+              <q-spinner-tail />
+            </div>
+          </template>
+        </q-btn>
         <q-btn
           unelevated
           label="export as pdf"
@@ -98,13 +89,6 @@
             <span class="q-ml-sm q-mb-lg">Go to chat</span>
           </a>
         </q-btn>
-        <q-btn
-          unelevated
-          no-caps
-          label="merge with another chat"
-          color="primary"
-          @click="selectChat = true"
-        />
       </q-card-actions>
     </q-page-sticky>
   </q-page>
@@ -137,9 +121,7 @@ import { QSpinnerTail, useQuasar } from "quasar";
 import { docStore } from "../stores/curentDocStore";
 import { useRoute } from "vue-router"; //import { htmlToDocx } from 'html-docx-js';
 import * as Cheerio from "cheerio";
-import { PDFDocument } from "pdf-lib";
 
-import { makeEven } from "../js/getIds";
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import html2pdmake from "html-to-pdfmake";
@@ -150,20 +132,23 @@ const isProcessingDom = ref(false);
 const finishedProcessing = ref(false);
 const route = useRoute();
 const readonly = ref(false);
+const isSaving = ref(false);
 const { url } = route.query;
-const selectChat = ref(false);
 const get_chat = async () => {
   if (store.contents.length < 1) {
     if (url != undefined) {
-      const { data, respond } = await $q.bex.send("getSingleChat", {
+      const { data } = await $q.bex.send("getSingleChat", {
         key: url,
       });
-      if (Object.values(data).length > 0) {
-        store.$state = data;
-      } else {
-        $q.dialog({
-          message: "something went wrong , chat was not found ",
-        });
+
+      if (data != null) {
+        if (Object.values(data).length > 0) {
+          store.$state = data;
+        } else {
+          $q.dialog({
+            message: "something went wrong , chat was not found ",
+          });
+        }
       }
     } else {
       console.log("no chats");
@@ -184,17 +169,18 @@ const toPdf = async () => {
   $q.loading.show({ spinnerColor: "white", spinner: QSpinnerTail });
   const html = editorRef.value.getContentEl();
 
-  const co = html.querySelector("#editorContent");
-  cloneNode.value = co.cloneNode(true);
+  const editorContent = html.querySelector("#editorContent");
+  cloneNode.value = editorContent.cloneNode(true);
 
-  const codes = co.querySelectorAll("code");
+  const codes = editorContent.querySelectorAll("code");
+  const clonedCodes = cloneNode.value.querySelectorAll("code");
+  const allChildren = Array.from(editorContent.children);
 
-  const allChildren = Array.from(co.children);
-  const codeToImage = new Promise(async (resolve, reject) => {
-    codes.forEach((element, index) => {
+  const codeToImage = new Promise((resolve) => {
+    for (let index = 0; index < codes.length; index++) {
+      const element = codes[index];
+      const clonedEl = clonedCodes[index];
       if (element.hasAttribute("class") == false) {
-        const styles = window.getComputedStyle(element);
-        const { color, fontFamily, tabSize, fontWeight } = styles;
         element.setAttribute(
           "style",
           `color:black;font-family:monospace;font-weight:bold`
@@ -204,6 +190,7 @@ const toPdf = async () => {
         }
       } else {
         const parent = element.parentElement.parentElement.parentElement;
+        const clonedParent = clonedEl.parentElement.parentElement.parentElement;
 
         setTimeout(() => {
           hmtl2canvas(parent, { scale: 0.9 }).then((canvas) => {
@@ -212,7 +199,7 @@ const toPdf = async () => {
             const imgEl = document.createElement("img");
             imgEl.setAttribute("src", `${img}`);
 
-            parent.replaceWith(imgEl);
+            clonedParent.replaceWith(imgEl);
             if (index >= codes.length - 1) {
               $q.loading.hide();
 
@@ -221,7 +208,7 @@ const toPdf = async () => {
           });
         }, 700);
       }
-    });
+    }
 
     allChildren.forEach((element) => {
       element.setAttribute("style", "line-height: 1.8");
@@ -242,20 +229,15 @@ const toPdf = async () => {
 const downloadChat = () => {
   $q.loading.hide();
 
-  const html = editorRef.value.getContentEl();
-
   //TODO::load font forms
 
-  const co = html.querySelector("#editorContent");
-
-  var val = html2pdmake(`${co.innerHTML}`, {
+  var val = html2pdmake(`${cloneNode.value.innerHTML}`, {
     ignoreStyles: ["font-family"],
     removeTagClasses: true,
   });
   var dd = { compress: false, content: JSON.parse(JSON.stringify(val)) };
 
-  console.log(JSON.parse(JSON.stringify(val)));
-  pdfMake.createPdf(dd).download(`${store.title}`.pdf);
+  pdfMake.createPdf(dd).download(`${store.title}.pdf`);
   finishedProcessing.value = false;
   isProcessingDom.value = false;
 };
@@ -264,7 +246,6 @@ const toolbar = [
   ["token"],
 
   [
-    ,
     {
       label: $q.lang.editor.align,
       icon: $q.iconSet.editor.align,
@@ -273,16 +254,9 @@ const toolbar = [
     },
   ],
   ["bold", "italic", "strike", "underline", "subscript", "superscript"],
-  ["hr", "link", "custom_btn"],
-  ["print"],
-  [
-    {
-      label: $q.lang.editor.formatting,
+  ["link", "image"],
 
-      icon: $q.iconSet.editor.formatting,
-      list: "no-icons",
-      options: ["p", "h1", "h2", "h3", "h4", "h5", "h6", "code"],
-    },
+  [
     {
       label: $q.lang.editor.fontSize,
       icon: $q.iconSet.editor.fontSize,
@@ -316,7 +290,6 @@ const toolbar = [
         "verdana",
       ],
     },
-    "removeFormat",
   ],
   ["quote", "unordered", "ordered", "outdent", "indent"],
 
@@ -330,7 +303,7 @@ var editor = ref("");
 const processHtml = async () => {
   const $ = Cheerio.load(`
   <div class="page">
-    <div style="text-align:center"> ${store.title}
+    <div style="text-align:center;margin-top:20px;margin-bottom:20px; " > <h6> <u>${store.title}</u> </h6>
       <a href="${store.url}">
       <b>go to chat </b>
       </a> <br/>
@@ -340,23 +313,32 @@ const processHtml = async () => {
          </div>
     </div>
    `);
-  $("button").remove();
+  //$("button").remove();
   editor.value = $.html();
 };
 const save = async () => {
-  const content = editorRef.value.getContentEl();
-  const date = new Date().toISOString();
+  isSaving.value = true;
+  const content = document.querySelector("#editorContent").innerHTML;
+  store.htmlString = content;
+  const chatContents = store.$state;
+  const { data } = await $q.bex.send("saveChats", {
+    key: chatContents.url,
+    content: chatContents,
+  });
+  console.log("save", chatContents["numberOfQuestions"]);
 
-  const chatContents = { date: date, ...store.$state };
-  const { data, respond } = await $q.bex.send("saveChats", chatContents);
+  console.log(data, "ddjd");
   if (data) {
     console.log("saved", chatContents);
     $q.notify({
-      message: `chat saved`,
-      color: "red-7",
+      message: `succefully saved`,
+      color: "blue-6",
+      icon: "thumb_up",
       textColor: "white",
+      position: "bottom-left",
     });
   }
+  isSaving.value = false;
 };
 
 const addToRecent = async () => {
@@ -369,18 +351,6 @@ onMounted(async () => {
   await get_chat();
 
   processHtml().then(() => {
-    const contentStyle = {
-      fontFamily: "calibri",
-      maxWidth: "205mm",
-      fontSize: "12pt",
-      lineHeight: "2",
-      height: "100%",
-      display: "block",
-      marginRight: "auto",
-      marginLeft: "auto",
-      textAlign: "left",
-    };
-
     const contentClass = "default-styles q-card  shadow-5 page";
     const page = document.querySelector(".page");
 
@@ -396,46 +366,10 @@ onMounted(async () => {
     margin-right: auto;
     margin-left: auto;`
     );
-
-    const element = page;
   });
 
   await addToRecent();
-
-  //TODO:attempting to display the content in pages
-
-  /*
-  const hasOverflowed = element.scrollHeight > element.clientHeight;
-
-  if (hasOverflowed) {
-    const overflowAmount = element.scrollHeight - element.clientHeight;
-    const overflowedContent = element.innerHTML.slice(-overflowAmount);
-    console.log(overflowedContent);
-  }*/
 });
-
-if (store.contents.length > 0) {
-  setTimeout(async () => {
-    const content = editorRef.value.getContentEl();
-    const date = new Date().toISOString();
-
-    const chatContents = { date: date, ...store.$state };
-    const { data, respond } = await $q.bex.send("saveChats", {
-      key: chatContents.url,
-      content: chatContents,
-    });
-    if (data) {
-      console.log("saved", chatContents);
-      $q.notify({
-        message: `chat saved`,
-        color: "red-7",
-        textColor: "white",
-      });
-      respond();
-    }
-    //await $q.bex.send("storage.set", { key: store.url, value: chatContents });
-  }, 3000);
-}
 </script>
 <style>
 .q-editor__toolbars-container {
