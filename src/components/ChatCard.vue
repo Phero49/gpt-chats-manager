@@ -1,6 +1,5 @@
 <!-- eslint-disable vue/require-default-prop -->
 <template>
-  {{}}
   <div
     @mouseenter="onMouseOver = true"
     @mouseleave="onMouseOver = false"
@@ -34,13 +33,11 @@
               >
                 <q-item-section>add to collection </q-item-section>
               </q-item>
-              <q-item clickable v-close-popup>
-                <q-item-section> Share </q-item-section>
-              </q-item>
+
               <q-item
                 clickable
                 v-close-popup
-                @click="deleteChat(values.url, values.title, index, key)"
+                @click="deleteChat(values.url, values.title, index)"
               >
                 <q-item-section> Delete </q-item-section>
               </q-item>
@@ -108,20 +105,21 @@ const onMouseOver = ref(false);
 const $q = useQuasar();
 // eslint-disable-next-line vue/require-default-prop
 defineProps({ values: {} });
-const emits = defineEmits(["selectCollection"]);
+const emits = defineEmits(["selectCollection", "removed"]);
 function open(data) {
   const { url } = data;
 
   router.push(`/exportDocs?url=${url}`);
 }
 
-async function deleteChat(url, title, index, key) {
+async function deleteChat(url, title) {
   console.log("called");
   title = cheerio.load(`${title != undefined ? title : "null"}`).text();
   const deleted = await $q.bex.send("removeChat", {
-    date: key,
     url: url,
   });
+
+  emits("removed");
 
   if (deleted) {
     $q.notify({

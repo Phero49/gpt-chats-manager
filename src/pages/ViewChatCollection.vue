@@ -21,16 +21,22 @@
                 <q-menu>
                   <q-list style="min-width: 100px" dense separator>
                     <q-item clickable v-close-popup>
-                      <q-item-section> remove from collection </q-item-section>
+                      <q-item-section
+                        @click="
+                          removeFromCollection(
+                            $route.params.collection,
+                            key,
+                            index
+                          )
+                        "
+                      >
+                        remove from collection
+                      </q-item-section>
                     </q-item>
                     <q-item clickable v-close-popup>
                       <q-item-section> Share </q-item-section>
                     </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                      @click="deleteChat($route.params.collection, key)"
-                    >
+                    <q-item clickable v-close-popup @click="deleteChat(key)">
                       <q-item-section> Delete </q-item-section>
                     </q-item>
                   </q-list>
@@ -98,20 +104,45 @@ import { useQuasar } from "quasar";
 import { ref, onMounted } from "vue";
 import * as cheerio from "cheerio";
 import { useRoute, useRouter } from "vue-router";
-import { docStore } from "src/stores/curentDocStore";
-const store = docStore();
 const router = useRouter();
 
 const route = useRoute();
 const { collection } = route.params;
 const $q = useQuasar();
-const chats = ref([]);
+const chats = ref({});
 function open(url) {
   router.push(`/exportDocs?url=${url}`);
 }
+
+const removeFromCollection = async (collectionName, url) => {
+  const { data: singleChat } = await $q.bex.send("getSingleChat", {
+    key: url,
+  });
+  const { data } = await $q.bex.send("removeFromCollection", {
+    collectionName: collectionName,
+    url: url,
+  });
+
+  const set = new Set();
+
+  Array.from(singleChat["associatedCollections"]).forEach((value) => {
+    set.add(value);
+  });
+  set.delete(collectionName);
+
+  singleChat["associatedCollections"] = set;
+
+  if (data) {
+    await $q.bex.send("saveChats", singleChat);
+
+    console.log(chats.value);
+    delete chats.value[url];
+  }
+};
+
 const collectionItem = async () => {
   if (collection != undefined) {
-    const { data, respond } = await $q.bex.send("getCollectionItems", {
+    const { data } = await $q.bex.send("getCollectionItems", {
       key: collection,
     });
 
