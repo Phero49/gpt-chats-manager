@@ -2,10 +2,10 @@
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/dom-hooks
 import { bexDom } from 'quasar/wrappers'
 
-export default bexDom((bridge) => {
+export default bexDom((/*bridge*/) => {
 
   //this function exports the chat
-  const exportBtn = () => {
+  /**  const exportBtn = () => {
     const divGroup = document.querySelector('div.group')
     if (divGroup) {
       // Select the target node
@@ -33,9 +33,10 @@ export default bexDom((bridge) => {
 
     }
 
-  }
+  } */
 
-  const observer = new MutationObserver((mutations, observe) => {
+
+  const observer = new MutationObserver((mutations) => {
 
 
 

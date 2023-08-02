@@ -5,51 +5,8 @@
 import { bexContent } from 'quasar/wrappers'
 
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  // Check if the request is the one you're expecting
-  console.log("fhbhjhbcjhchjcshgh")
-  if (request.type === "getchatgptDom") {
-    // Access the data in the request
-    const elements = request.data;
-    // Do something with the elements
-    console.log(elements);
-  }
-});
 
-export default bexContent((bridge) => {
-
-  bridge.on('has_updated', ({ data, respond }) => {
-    console.log('hello world')
-
-  })
-
-
-
-
-  window.addEventListener("getchatgptDom", function (event) {
-    // Check if the event is the one you're expecting
-    console.log("oooooooo")
-    if (event.data.type === "getchatgptDom") {
-      // Access the data in the event
-      const elements = event.data.data;
-      // Do something with the elements
-      console.log(elements);
-    }
-  })
-  chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    // Check if the request is the one you're expecting
-    if (request.type === "getchatgptDom") {
-      // Access the data in the request
-      const elements = request.data;
-      // Do something with the elements
-      console.log(elements);
-    }
-  });
-
-
-
-
-
+export default bexContent((/**bridge**/) => {
 
 
 

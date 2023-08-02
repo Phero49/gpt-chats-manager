@@ -1,8 +1,16 @@
 import { bexBackground } from 'quasar/wrappers'
 import * as cheerio from "cheerio"
 import { db, myCollections } from "./db"
-var tabId = null
+
+
 chrome.runtime.onInstalled.addListener(() => {
+  //creating all needed collections  for the extension
+  const keys = Object.keys(myCollections)
+  keys.forEach(async (key) => {
+    const database = new db(myCollections[key])
+    await database.createCollection()
+
+  })
 
 })
 chrome.action.onClicked.addListener((tab) => {
@@ -11,27 +19,20 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.tabs.create({
     url: chrome.runtime.getURL('www/index.html')
   }, (/* newTab */) => {
-    tabId = tab.id
     chrome.scripting.executeScript({
       target: { tabId: tab.id, allFrames: true },
       func: () => {
+        //dont remove the time out i dont know what it does but  the code breaks without  it 
         setTimeout(() => {
-          const el = document.querySelector("body")
           const divGroup = document.querySelector('div.group')
           if (divGroup) {
-            // Select the target node
-            const targetNode = document.body;
-            var chatLength = 0
-
-            var chat = { "request": [], "response": [] }
-            var currentEl = null
 
 
             const element = document.querySelector('div.group');
             if (element) {
               //
 
-              const elements = document.querySelectorAll("div.flex.flex-col.items-start.gap-4")
+              const elements = document.querySelectorAll(".flex-grow.flex-col.gap-3")
               var elementString = []
 
               elements.forEach((el) => {
@@ -61,44 +62,64 @@ chrome.action.onClicked.addListener((tab) => {
 
 export default bexBackground((bridge /* , allActiveConnections */) => {
 
-  chrome.tabs.onUpdated.addListener((tabId, chanfe_info) => {
-    bridge.send('has_updated')
-    console.log('updated')
-  })
 
-  chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    console.log(request, sender, "kkkkkkkpppp")
-    if (sender.origin === "https://chat.openai.com" && sender.url.match("https://chat.openai.com/c/+").length > 0 && sender.url.includes('?model=text-davinci-002-render-sha') == false) {
-      console.log("sender", sender.url)
-      const title = sender.tab.title
-      const chat_url = sender.tab.url
-      const chat_data = request.data
-      var req = []
-      var groups = []
-      var chatData = []
-      for (let index = 0; index < chat_data.length; index++) {
+  chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
+    try {
+      const regex = new RegExp("https://chat\\.openai\\.com/c/[a-zA-Z0-9-]+");
 
-        const element = chat_data[index];
-        if ((index + 1) % 2 !== 0) {
 
-          const headings = `<div class="itemCount-${index + 1}" style="font-weight:bold;font-size:18px;"> <p> ${element} <p> </div>`
-          groups.push(headings)
-          req.push(element)
+      console.log(sender.origin === "https://chat.openai.com",
+        sender.url,
+        regex.test(sender.url)
+        ,
+        !sender.url.includes("?model=text-davinci-002-render-sha"))
+      if (
+        sender.origin === "https://chat.openai.com" &&
+        regex.test(sender.url) &&
+        sender.url.includes("?model=text-davinci-002-render-sha") === false
+      ) {
+        const title = sender.tab.title
+        const chat_url = sender.tab.url
+        const chat_data = request.data
+        var askedQuestions = []
+        var groups = []
+        var chatData = []
+        for (let index = 0; index < chat_data.length; index++) {
+
+          const chatgptResponse = chat_data[index];
+
+          if ((index + 1) % 2 !== 0) {
+            var $ = cheerio.load(chatgptResponse)
+            var text = $.root().text()
+            const quation = `<div class="question itemCount-${index + 1}" style="font-weight:bold;font-size:18px;"> <p> ${text} <p> </div>`
+            groups.push(quation)
+            askedQuestions.push(text)
+          }
+
+          else {
+            groups.push(`<div class="response  itemCount-${index + 1}"> ${chatgptResponse} </div>`)
+
+          }
+
+          if (groups.length >= 2) {
+            const group = `<div id="group-${index - 1}"> ${groups.join("")} </div>`
+
+            chatData.push(group)
+            groups = []
+          }
         }
-        else {
-          groups.push(`<div class="itemCount-${index + 1}"> ${element} </div>`)
 
-        }
-
-        if (groups.length >= 2) {
-          const group = `<div id="group-${index - 1}"> ${groups.join("")} </div>`
-          chatData.push(group)
-          groups = []
-        }
+        await bridge.send("get_chat", { askedQuestions: askedQuestions, chat: chatData, title: title, chat_url: chat_url })
+        sendResponse(true)
       }
+      else {
+        await bridge.send("get_chat", null)
+        console.log("something wrong with url")
+      }
+    } catch (error) {
+      console.log(error)
+      await bridge.send("get_chat", null)
 
-      bridge.send("get_chat", { req: req, chat: chatData, title: title, chat_url: chat_url })
-      sendResponse()
     }
   });
 
@@ -124,7 +145,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
   })
 
-  bridge.on('exportdb', async ({ data, respond }) => {
+  bridge.on('exportdb', async ({ respond }) => {
     const database = new db()
     const json = await database.exportdb()
 
@@ -137,6 +158,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     const database = new db(myCollections.folders)
     const query = { all: true, object: true }
     const results = await database.getMany(query)
+    // console.log(results, 'jjjj')
     if (all) {
 
 
@@ -145,8 +167,13 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     }
     else {
 
-      const first4 = Object.keys(results).slice(0, 4)
-      respond(first4)
+      if (results != null) {
+        const first4 = Object.keys(results).slice(0, 4)
+        respond(first4)
+      }
+      else {
+        respond([])
+      }
 
     }
 
@@ -175,12 +202,12 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
 
     const database = new db(myCollections.folders)
     const folder = await database.getOne(collectionName)
-    console.log(folder)
+
     delete itemData['key']
     folder[key] = itemData
 
     await database.InsertIntoCollection(collectionName, folder)
-    console.log(folder, key)
+
     respond(true)
 
   })
@@ -192,19 +219,25 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     respond(true)
 
   })
+  bridge.on('deletedb', async ({ respond }) => {
+
+    await db.clear()
+    respond(true)
+  })
 
   bridge.on("getSingleChat", async ({ data, respond }) => {
+
     const database = new db('my_chats')
     const { key } = data
     const results = await database.getOne(key)
+    console.log("stuck")
     respond(results)
 
   })
 
 
 
-  bridge.on("getChats", async ({ data, respond }) => {
-    const { key, start, end, date } = data
+  bridge.on("getChats", async ({ respond }) => {
 
     function groupData(dataArray) {
       // Create an empty object to hold the grouped chats
@@ -239,59 +272,47 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     //fetch raw chats
     const results = await database.getMany(query)
     //group chats
+    //console.log(results, 'jjjjd')
     const groupedData = groupData(results)
 
-    const keys = Object.keys(groupedData).sort((a, b) => {
-      const date1 = new Date(a).getTime();
-      const date2 = new Date(b).getTime();
 
-      return date2 - date2;
-    });
 
-    console.log(keys)
 
 
     respond(groupedData)
 
   })
 
-  function removeFromCollection(date, url, colName) {
-    chrome.storage.local.get("collections", (item) => {
-      const collection = item['collections']
-      if (collection != undefined) {
-        for (const key of Object.keys(collection)) {
-          const { date, cols } = collection[key]
-          for (let index = 0; index < cols.length; index++) {
-            const { item } = cols[index]
-            const { url2 } = item
-            if (url === url2) {
-              collection[key]['cols'].splice(index, 1)
+  // eslint-disable-next-line no-unused-vars
+  function removeFromCollection(date, url) {
 
 
-
-            }
-          }
-
-        }
-        chrome.storage.local.set({ "collections": collection })
-
-      }
-
-
-
-    })
   }
+
+  bridge.on("removeFromCollection", async ({ data, respond }) => {
+    const { collectionName, url } = data
+    const database = new db(myCollections.folders)
+    const collection = await database.getOne(collectionName)
+    if (collection != null) {
+      delete collection[url]
+      await database.InsertIntoCollection(collectionName, collection)
+      respond(true)
+    }
+    respond(false)
+
+  })
 
   bridge.on("addToRecent", async ({ data, respond }) => {
     const { key, label } = data
     const database = new db(myCollections.recent)
     database.createCollection()
     await database.InsertIntoCollection(key, label, 20)
+    respond(true)
 
   })
 
 
-  bridge.on("getRecent", async ({ data, respond }) => {
+  bridge.on("getRecent", async ({ respond }) => {
 
     const database = new db(myCollections.recent)
     const query = { all: true, object: true }
@@ -302,25 +323,26 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
   })
 
 
-  bridge.on("removeFromcollection", ({ data, respond }) => {
 
-  })
-  bridge.on("removeChat", ({ data, respond }) => {
-    const { date, url } = data
-    chrome.storage.local.get("chats", async (items) => {
-      var chats = items['chats'][date]
-      const deleted = delete chats[url]
-      if (deleted) {
+  bridge.on("removeChat", async ({ data, respond }) => {
+    const { url } = data
+    const database = new db(myCollections.my_chats)
+    const item = await database.getOne(url)
 
-        const chatsBydate = {}
-        chatsBydate[date] = chats
-        console.log(chatsBydate, { "chats": chatsBydate })
-        await chrome.storage.local.set({ "chats": chatsBydate })
-        respond(true)
-        removeFromCollection(url)
+    const associatedCollections = item["associatedCollections"]
+    Array.from(associatedCollections).forEach(async (value) => {
+      await bridge.send("removeFromCollection", { collectionName: value, url: item['url'] })
 
-      }
     })
+
+    const results = await database.deletedITem(url)
+
+    if (results) {
+      respond(results)
+    }
+    else {
+      respond(false)
+    }
 
   })
   bridge.on("saveChats", async ({ data, respond }) => {
@@ -333,6 +355,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     if (key != undefined) {
 
       await database.InsertIntoCollection(key, content)
+      respond(true)
 
     }
     else {

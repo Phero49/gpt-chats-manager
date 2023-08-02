@@ -13,13 +13,15 @@ export class db {
 
     // Method to check if the collection exists in local storage
     async hasCollection() {
-        const collection = new Promise((resolve, reject) => {
-            chrome.storage.local.get(this.collection, item => {
+        const collection = new Promise((resolve,) => {
+            chrome.storage.local.get(this.collection, async item => {
+
                 // Resolve to true if the collection exists, otherwise resolve to false
-                if (item !== null || item != {}) {
-                    resolve(true);
-                } else {
+                if (item[this.collection] == undefined) {
+
                     resolve(false);
+                } else {
+                    resolve(true);
                 }
             });
         });
@@ -34,6 +36,9 @@ export class db {
             await chrome.storage.local.set(collectionObject);
             return true;
         }
+        else {
+            return true
+        }
     }
 
     // Method to insert data into the collection in local storage
@@ -41,7 +46,10 @@ export class db {
         if (data != undefined) {
             if (await this.hasCollection()) {
                 chrome.storage.local.get(this.collection, async (item) => {
-                    const collection = item[this.collection];
+                    var collection = item[this.collection];
+                    if (collection == undefined) {
+                        collection = {}
+                    }
                     if (max == undefined) {
                         // Insert the data into the collection
                         collection[key] = data;
@@ -68,8 +76,6 @@ export class db {
                         }
                     }
                 });
-            } else {
-                console.error('collection does not exist');
             }
         } else {
             return false;
@@ -77,25 +83,38 @@ export class db {
     }
 
     // Method to retrieve multiple items from the collection based on specified criteria
-    async getMany({ where, filed, start, limit, all, key }) {
-        const promise = new Promise((resolve, reject) => {
+    async getMany({ start, limit, all, object }) {
+        const promise = new Promise((resolve) => {
             chrome.storage.local.get(this.collection, (item) => {
-                if (all == false) {
-                    const collection = item[this.collection];
-                    if (collection != null) {
-                        const values = Object.values(collection);
-                        if (values.length > 0) {
-                            const slice = values.slice(start, limit);
-                            resolve(slice);
+                if (item != undefined) {
+                    if (all == false) {
+                        const collection = item[this.collection];
+                        if (collection != null) {
+                            const values = Object.values(collection);
+                            if (values.length > 0) {
+                                const slice = values.slice(start, limit);
+                                resolve(slice);
+                            } else {
+                                resolve([]);
+                            }
                         } else {
                             resolve([]);
                         }
                     } else {
-                        resolve([]);
+                        if (object) {
+                            resolve(item[this.collection]);
+
+                        }
+                        else {
+                            resolve(Object.values(item[this.collection]));
+
+                        }
                     }
-                } else {
-                    resolve(Object.values(item[this.collection]));
                 }
+                else {
+                    resolve([])
+                }
+
             });
         });
         return await promise;
@@ -103,20 +122,34 @@ export class db {
 
     // Method to retrieve a single item from the collection based on the key
     async getOne(key) {
-        const promise = new Promise((resolve, reject) => {
-            chrome.storage.local.get(this.collection, (items) => {
-                const item = items[this.collection][key];
-                resolve(item);
+        const promise = new Promise((resolve,) => {
+
+            chrome.storage.local.get(this.collection, async (items) => {
+                if (items[this.collection] && items[this.collection][key]) {
+                    const item = items[this.collection][key];
+                    resolve(item);
+                } else {
+                    await this.createCollection();
+                    resolve(null);
+                }
             });
         });
         return await promise;
     }
 
+
     // Method to retrieve the entire collection
-    async getCollection() {
-        const promise = new Promise((resolve, reject) => {
+    async getCollection(values) {
+        const promise = new Promise((resolve,) => {
             chrome.storage.local.get(this.collection, (item) => {
-                resolve(Object.values(item[this.collection]));
+                if (values) {
+                    resolve(Object.values(item[this.collection]));
+
+                }
+                else {
+                    resolve(item)
+
+                }
             });
         });
         return await promise;
@@ -124,21 +157,22 @@ export class db {
 
     // Method to delete an item from the collection based on the key
     async deletedITem(key) {
-        var success = undefined;
-        chrome.storage.local.get(this.collection, (item) => {
-            const collection = item[this.collection];
-            if (collection[key] != undefined) {
-                if (delete collection[key]) {
-                    this.write(collection);
+        return new Promise((resolve) => {
+            chrome.storage.local.get(this.collection, (item) => {
+                const collection = item[this.collection];
+                if (collection[key] != undefined) {
+                    if (delete collection[key]) {
+                        this.write(collection).then(() => {
+                            resolve(true);
+                        });
+                    } else {
+                        resolve(false);
+                    }
                 } else {
-                    success = false;
+                    resolve(false);
                 }
-                success = true;
-            } else {
-                success = false;
-            }
+            });
         });
-        return success;
     }
 
     // Method to insert data into the collection using an auto-generated index
@@ -159,7 +193,7 @@ export class db {
 
     // Method to export the entire database as a JSON string
     async exportdb() {
-        const promise = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve,) => {
             chrome.storage.local.get(null, (items) => {
                 const json = JSON.stringify(items);
                 resolve(json);
@@ -167,7 +201,16 @@ export class db {
         });
         return await promise;
     }
+
+    static async clear() {
+
+        await chrome.storage.local.clear()
+
+
+    }
+
+
 }
 
 // Exporting the dictionary of collections
-export const myCollections = { 'my_chats': 'my_chats', 'recent': 'recent', 'folders': 'folders', 'folder_items': 'folder_items' };
+export const myCollections = { 'my_chats': 'my_chats', 'chats_keys': 'chats_keys', 'recent': 'recent', 'folders': 'folders', 'folder_items': 'folder_items' };
