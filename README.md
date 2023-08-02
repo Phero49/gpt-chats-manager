@@ -7,12 +7,12 @@ It includes features like:
 - Exporting chats as PDFs.
 - Viewing chats offline.
 - Editing chats before exporting.
-- Sharing chats in books.
+- Sharing chats in batches by exporting folders .
 - Managing and organizing chats through the use of collections.
 
 ## Download and Install
 
-Due to financial issues, I wasn't able to get it on the web store, but it can be installed as an unpacked extension. To download and install it, you can visit [this link](#).
+Due to financial issues, I wasn't able to get it on the web store, but it can be installed as an unpacked extension. To download and install it, you can visit [this link](https://gpt-chat-manger.web.app/).
 
 ## How Can You Contribute?
 
