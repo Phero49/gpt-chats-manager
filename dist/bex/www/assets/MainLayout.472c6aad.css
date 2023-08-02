@@ -1,0 +1,4 @@
+
+.headings::first-letter {
+  text-transform: capitalize;
+}

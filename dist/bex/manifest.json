@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "icons": {
+    "16": "icons/icon-16x16.png",
+    "48": "icons/icon-48x48.png",
+    "128": "icons/icon-128x128.png"
+  },
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab",
+    "unlimitedStorage"
+  ],
+  "action": {
+    "default_title": "gpt-chats-manager"
+  },
+  "file_system_provider_capabilities": {
+    "configurable": true,
+    "watchable": false,
+    "multiple_mounts": true,
+    "source": "device"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*/*"
+      ],
+      "css": [
+        "assets/content.css"
+      ],
+      "js": [
+        "my-content-script.js"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "script-src": [
+      "'self'",
+      "https://apis.google.com"
+    ],
+    "extension_pages": "script-src 'self' ; object-src 'self';",
+    "sandbox": "sandbox allow-scripts allow-forms",
+    "host_permissions": [
+      "https://apis.google.com/*"
+    ]
+  },
+  "sandbox": {
+    "pages": [
+      "/sandbox.html"
+    ]
+  },
+  "externally_connectable": {
+    "matches": [
+      "https://chat.openai.com/*"
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "*"
+      ],
+      "matches": [
+        "*://*/*"
+      ]
+    }
+  ],
+  "name": "gpt-chats-manager",
+  "short_name": "chats-manager",
+  "description": "a chrome extension for managing chatGpt chats it allows you to download your chats as pdfs ",
+  "version": "0.0.1"
+}
