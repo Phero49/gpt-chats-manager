@@ -33,9 +33,7 @@
                         remove from collection
                       </q-item-section>
                     </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section> Share </q-item-section>
-                    </q-item>
+
                     <q-item clickable v-close-popup @click="deleteChat(key)">
                       <q-item-section> Delete </q-item-section>
                     </q-item>

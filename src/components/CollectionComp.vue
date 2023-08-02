@@ -76,44 +76,59 @@
               <q-card
                 :style="mouseOver == i ? 'opacity:1;' : 'opacity:0;'"
                 class="length"
-                style="background-color: rgba(196, 194, 194, 0)"
-                @click="
-                  () => {
-                    $router.push(`/chat-collection/${colName}`);
-                  }
-                "
+                style="background-color: rgba(8, 8, 8, 0)"
               >
-                <div class="text-right">
-                  <q-btn
-                    :style="
-                      mouseOver == i ? ' display:inline ;' : 'display:none'
+                <div class="row">
+                  <div
+                    style="height: 120px"
+                    class="col-grow"
+                    @click="
+                      () => {
+                        $router.push(`/chat-collection/${colName}`);
+                      }
                     "
-                    color="black"
-                    flat
-                    dense
-                    style="margin: 0px"
-                    icon="more_horiz"
-                  >
-                    <q-menu :persistent="mouseOver == i">
-                      <q-list style="min-width: 100px">
-                        <q-item
-                          @click="deleteCollection(colName, i)"
-                          clickable
-                          v-close-popup
-                        >
-                          <q-item-section>delete collection</q-item-section>
-                        </q-item>
-                        <q-separator />
-                        <q-item
-                          clickable
-                          v-close-popup
-                          @click="editCollectiname(colName, i)"
-                        >
-                          <q-item-section>edit collection name</q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-menu>
-                  </q-btn>
+                  ></div>
+
+                  <div class="text-right">
+                    <q-btn
+                      :style="
+                        mouseOver == i ? ' display:inline ;' : 'display:none'
+                      "
+                      color="black"
+                      flat
+                      dense
+                      style="margin: 0px"
+                      icon="more_horiz"
+                    >
+                      <q-menu :persistent="mouseOver == i">
+                        <q-list style="min-width: 100px">
+                          <q-item
+                            @click="exportCollection(colName, i)"
+                            clickable
+                            v-close-popup
+                          >
+                            <q-item-section>
+                              <q-item-label caption>
+                                export collection
+                              </q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          <q-item
+                            @click="deleteCollection(colName, i)"
+                            clickable
+                            v-close-popup
+                          >
+                            <q-item-section>
+                              <q-item-label caption>
+                                delete collection
+                              </q-item-label>
+                            </q-item-section>
+                          </q-item>
+                          <q-separator />
+                        </q-list>
+                      </q-menu>
+                    </q-btn>
+                  </div>
                 </div>
               </q-card>
             </div>
@@ -209,6 +224,7 @@
 </template>
 
 <script setup>
+//TODO:implement import
 import { useQuasar } from "quasar";
 import { ref, onMounted } from "vue";
 
@@ -226,10 +242,6 @@ const $q = useQuasar();
 const collectionNames = ref([]);
 const edit = ref(null);
 const editName = ref();
-const editCollectiname = async (collName, index) => {
-  editName.value = collName;
-  edit.value = index;
-};
 
 const submitChange = async (index) => {
   const { data } = await $q.bex.send("editCollection", {
@@ -253,9 +265,29 @@ const deleteCollection = async (collectionName, index) => {
 
 const proxy = ref();
 
+const exportCollection = async (key) => {
+  const { data } = await $q.bex.send("getCollectionItems", { key: key });
+  if (data != null) {
+    $q.loading.show();
+
+    const a = document.createElement("a");
+    const dataURI =
+      "data:application/json;charset=utf-8," + encodeURIComponent(data);
+
+    a.href = dataURI;
+    a.download = `${key} chats_collection.json`;
+    a.click();
+    $q.loading.hide();
+    $q.notify({
+      message: "collection succefully exported",
+      color: "green",
+      badgeColor: "green",
+      position: "bottom-left",
+    });
+  }
+};
 const createCollection = async () => {
   if (addColName.value) {
-    console.log(newCollectionName.value);
     const res = await $q.bex.send("createCollection", {
       collectionName: newCollectionName.value,
     });
@@ -290,7 +322,6 @@ async function getCollections() {
   const { data, respond } = await $q.bex.send("getCollections", {
     all: props.prewiew ? false : true,
   });
-  console.log(data);
   collectionNames.value = data;
   respond();
 }

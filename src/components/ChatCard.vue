@@ -113,7 +113,6 @@ function open(data) {
 }
 
 async function deleteChat(url, title) {
-  console.log("called");
   title = cheerio.load(`${title != undefined ? title : "null"}`).text();
   const deleted = await $q.bex.send("removeChat", {
     url: url,

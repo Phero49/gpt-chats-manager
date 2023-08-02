@@ -15,6 +15,7 @@
 
         <div>
           <q-btn
+            no-caps
             icon="chat_bubble"
             to="/"
             :color="$route.path == '/' ? 'green' : 'black'"
@@ -26,43 +27,62 @@
         <div>
           <q-btn
             color="black"
-            label="export database"
+            no-caps
+            label="exportdb"
             dense
-            flat
-            @click="importdb"
-          >
-          </q-btn>
-        </div>
-        <div>
-          <q-btn
-            color="black"
-            dense
-            label="import database"
             flat
             @click="exportdb"
+          />
+        </div>
+        <div>
+          <q-btn color="black" no-caps dense label="import" flat>
+            <q-menu>
+              <q-list style="min-width: 100px">
+                <q-item clickable v-close-popup>
+                  <q-item-section>import database</q-item-section>
+                </q-item>
+                <q-separator />
+                <q-item clickable v-close-popup>
+                  <q-item-section>import collection</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </div>
+
+        <div>
+          <q-btn
+            flat
+            href="/"
+            label="about"
+            no-caps
+            :color="$route.path == '/help' ? 'green' : 'black'"
           >
+            <q-tooltip> more about this app</q-tooltip>
+          </q-btn>
+        </div>
+
+        <div>
+          <q-btn
+            flat
+            href="https://gpt-chat-manger.web.app/feedback
+"
+            color="black"
+            label="feedback"
+            no-caps
+          >
+            <q-tooltip> give you feedback</q-tooltip>
           </q-btn>
         </div>
 
         <div>
           <q-btn
             color="red"
-            flat
-            dense
+            unelevated
+            no-caps
             label="delete dabase "
             @click="confirmDelete = true"
           />
-        </div>
-
-        <div>
-          <q-btn
-            flat
-            @click="onClick"
-            label="about"
-            :color="$route.path == '/help' ? 'green' : 'black'"
-          >
-            <q-tooltip> learn about this app</q-tooltip>
-          </q-btn>
         </div>
       </q-toolbar>
     </q-header>
@@ -75,18 +95,30 @@
       <div class="q-py-sm">
         <div>
           <q-card-actions align="center">
-            <q-btn color="blue-6" round icon="bi-twitter" flat @click="onClick">
+            <q-btn
+              color="black"
+              round
+              icon="bi-twitter"
+              flat
+              href="https://twitter.com/PempheroMk13763"
+            >
               <q-tooltip> follow me on twitter </q-tooltip>
             </q-btn>
-            <q-btn color="blue-8" round icon="bi-linkedin" flat>
+            <q-btn
+              color="blue-8"
+              href="https://www.linkedin.com/in/pemphero-mkuka-447022230/"
+              round
+              icon="bi-linkedin"
+              flat
+            >
               <q-tooltip> follow me on linked </q-tooltip>
             </q-btn>
             <q-btn
-              color="primary"
+              color="black"
               round
-              icon="bi-facebook"
+              icon="bi-github"
               flat
-              @click="onClick"
+              href="https://github.com/Phero49"
             >
               <q-tooltip> follow me on facebook </q-tooltip>
             </q-btn>
@@ -174,6 +206,7 @@ import ChatOutline from "src/components/chatOutline.vue";
 //TODO:import not yet implemented
 
 async function exportdb() {
+  $q.loading.show();
   //this function exports  the whole db as a json
   const { data } = await $q.bex.send("exportdb");
   const a = document.createElement("a");
@@ -183,6 +216,8 @@ async function exportdb() {
   a.href = dataURI;
   a.download = "chats-manager.json";
   a.click();
+  $q.loading.hide();
+
   $q.notify({
     message: "data succefully exported",
     color: "green",
@@ -212,28 +247,33 @@ const saveChat = async (chatStructure) => {
     key: chatContents.url,
     content: chatContents,
   });
+
   router.push(`/exportDocs?url=${chatStructure.url}`);
 };
-$q.bex.once("get_chat", ({ data }) => {
-  var chatStructure = {
-    contents: [],
-    htmlString: "",
-    title: "",
-    date: null,
-    url: "",
-    numberOfQuestions: 0,
-  };
 
-  if (data != null) {
-    if (data.chat) {
-      // If 'chat' property exists in the 'data' object
-      const newChatData = data;
-      chatContents.value = data.askedQuestions;
+$q.bex.once("get_chat", async ({ data }) => {
+  try {
+    const set = new Set();
 
-      const title = `${data.title}`;
-      store.$reset();
+    var chatStructure = {
+      associatedCollections: set,
+      contents: [],
+      htmlString: "",
+      title: "",
+      date: null,
+      url: "",
+      numberOfQuestions: 0,
+    };
 
-      setTimeout(async () => {
+    if (data != null) {
+      if (data.chat) {
+        // If 'chat' property exists in the 'data' object
+        const newChatData = data;
+        chatContents.value = data.askedQuestions;
+
+        const title = `${data.title}`;
+        store.$reset();
+
         // Set the 'url' and 'title' in the 'store' object
         chatStructure.url = newChatData.chat_url;
         chatStructure.title = title;
@@ -245,7 +285,6 @@ $q.bex.once("get_chat", ({ data }) => {
         });
 
         const oldChatData = chatData;
-        console.log("old", oldChatData);
         if (oldChatData === null) {
           var date = new Date().toLocaleDateString();
           date = new Date(date).getTime();
@@ -262,8 +301,6 @@ $q.bex.once("get_chat", ({ data }) => {
           var { numberOfQuestions } = chatStructure;
 
           const newQuestionNumber = newChatData.askedQuestions.length;
-
-          console.log(newQuestionNumber, numberOfQuestions);
 
           const questionNumberDiffernce = newQuestionNumber - numberOfQuestions;
 
@@ -282,18 +319,15 @@ $q.bex.once("get_chat", ({ data }) => {
             //  console.log("additional chats", additionalChats);
 
             // Concatenate newContent with contents and assign it back to contents
-            console.log(newContent);
 
             chatStructure.contents = chatStructure.contents.concat(newContent);
             // Append additionalChats to htmlString
-            console.log(oldChatData, "new chat", newChatData);
 
             const additionalChatsString = additionalChats.join("");
 
             chatStructure.htmlString =
               chatStructure.htmlString + additionalChatsString;
             chatStructure.numberOfQuestions += questionNumberDiffernce;
-            console.log(chatStructure);
             await saveChat(chatStructure);
           } else {
             router.push(`/exportDocs?url=${chatStructure.url}`);
@@ -301,18 +335,20 @@ $q.bex.once("get_chat", ({ data }) => {
         }
 
         // Redirect to "/exportDocs" after the timeout
-      }, 1);
-    }
-  } else {
-    // If 'chat' property does not exist in 'data', show an error dialog
-    $q.dialog({
-      message: `Error: Something went wrong. 
+      }
+    } else {
+      // If 'chat' property does not exist in 'data', show an error dialog
+      $q.dialog({
+        message: `Error: Something went wrong. 
       Make sure your chat link ends with something 
       like c/5551925e-61ba-45f2-b5da-10258fc664de and
        not something like model=text-davinci-002-render-sha . 
        if it ends with model=text-davinci-002-render-sha refresh your chat page `,
-      dark: true,
-    });
+        dark: true,
+      });
+    }
+  } catch (error) {
+    // console.log(error);
   }
 });
 

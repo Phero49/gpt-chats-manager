@@ -1,58 +1,60 @@
 <template>
   <q-page class="" padding>
     <div v-if="Object.keys(chats).length > 0">
-      <collection-comp />
+      <q-scroll-area style="width: 1020px; height: 350px">
+        <collection-comp />
+      </q-scroll-area>
       <q-separator spaced inset dark class="q-my-lg" />
 
       <div>
         <div class="text-h6 q-my-sm">Recent chats by date</div>
-        <q-btn color="primary" no-caps icon="event" label="select date" flat>
-          <q-popup-proxy>
-            <q-date v-model="date" minimal landscape />
-          </q-popup-proxy>
-        </q-btn>
       </div>
 
-      <q-timeline color="black" layout="dense">
-        <q-infinite-scroll @load="onLoad" :offset="250">
-          <q-timeline-entry
-            color="black"
-            :subtitle="new Date(key).toDateString()"
-            v-for="(key, index) in Object.keys(chats)"
-            :key="index"
-          >
-            <div class="row items-start">
-              <div
-                class="col-md-3"
-                v-for="(values, index) in chats[key]"
-                :key="index"
-              >
-                <div v-if="index < 100">
-                  <chat-card @select-collection="openDialog" :values="values" />
-                </div>
-              </div>
-              <div class="q-mt-lg text-right row justiy-right" v-if="false">
-                <q-btn
-                  color="black"
-                  flat
-                  icon-right="expand_more"
-                  :label="`View all ${Object.keys(chats[key]).length} chats `"
-                  @click="
+      <q-infinite-scroll @load="onLoad" :offset="250">
+        <div v-for="(key, index) in Object.keys(chats)" :key="index">
+          <div class="text-body2 text-weight-medium q-py-md">
+            {{ new Date(key).toDateString() }}
+          </div>
+          <div class="row items-start">
+            <div
+              class="col-md-3"
+              v-for="(values, index2) in chats[key]"
+              :key="index2"
+            >
+              <div v-if="index2 < 4">
+                <chat-card
+                  @select-collection="openDialog"
+                  :values="values"
+                  @removed="
                     () => {
-                      limit = Object.keys(chats[key]).length;
+                      chats[key].splice(index2, 1);
                     }
                   "
                 />
               </div>
             </div>
-          </q-timeline-entry>
-          <template v-slot:loading>
-            <div class="row justify-center q-my-md">
-              <q-spinner-dots color="primary" size="40px" />
+            <div class="q-mt-lg text-right row justiy-right" v-if="false">
+              <q-btn
+                color="black"
+                flat
+                icon-right="expand_more"
+                :label="`View all ${Object.keys(chats[key]).length} chats `"
+                @click="
+                  () => {
+                    limit = Object.keys(chats[key]).length;
+                  }
+                "
+              />
             </div>
-          </template>
-        </q-infinite-scroll>
-      </q-timeline>
+          </div>
+        </div>
+
+        <template #loading>
+          <div class="row justify-center q-my-md">
+            <q-spinner-tail color="primary" size="40px" />
+          </div>
+        </template>
+      </q-infinite-scroll>
     </div>
 
     <div v-else class="absolute-center text-center">
@@ -87,67 +89,7 @@
         </div>
       </div>
     </div>
-    <q-page-sticky position="bottom-right" :offset="[18, 100]" expand>
-      <q-card-actions vertical align="center">
-        <q-btn color="blue-6" round icon="bi-twitter" flat @click="onClick">
-          <q-tooltip> follow me on twitter </q-tooltip>
-        </q-btn>
-        <q-btn color="blue-8" round icon="bi-linkedin" flat @click="onClick">
-          <q-tooltip> follow me on linked </q-tooltip>
-        </q-btn>
-        <q-btn color="primary" round icon="bi-facebook" flat @click="onClick">
-          <q-tooltip> follow me on facebook </q-tooltip>
-        </q-btn>
-      </q-card-actions>
-    </q-page-sticky>
-    <q-page-sticky position="bottom-right" :offset="[18, 30, 20]" expand>
-      <q-btn
-        fab-mini
-        color="purple"
-        label="feedback"
-        @click="feedBack = true"
-        icon="feedback"
-      />
-    </q-page-sticky>
-    <q-dialog v-model="feedBack" persistent>
-      <q-card style="width: 400px">
-        <q-card-section>
-          <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
-            <q-input
-              v-model="fullName"
-              aria-required
-              dense
-              type="text"
-              label="Full name"
-            />
-            <q-input
-              v-model="email"
-              aria-required
-              dense
-              type="email"
-              label="Email"
-            />
-            <q-input v-model="subject" dense type="text" label="subject" />
-            <q-input
-              type="textarea"
-              v-model="message"
-              dense
-              label="message"
-            ></q-input>
 
-            <div>
-              <q-btn
-                label="Submit"
-                type="submit"
-                color="primary"
-                v-close-popup
-              />
-              <q-btn flat label="Cancel" color="primary" v-close-popup />
-            </div>
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
     <q-dialog v-model="selectCollectionDialog" persistent>
       <q-card>
         <q-card-section class="">
@@ -159,7 +101,7 @@
             label="search collection"
             dense
           >
-            <template v-slot:prepend>
+            <template #prepend>
               <div>
                 <q-icon name="search" />
               </div>
@@ -190,9 +132,7 @@ import ChatCard from "src/components/ChatCard.vue";
 
 import CollectionComp from "src/components/CollectionComp.vue";
 import { recent } from "src/stores/recent";
-const date = ref("2023/05/05");
 const recentStore = recent();
-const feedBack = ref(false);
 const $q = useQuasar();
 const chats = ref([]);
 const limit = ref(100);
@@ -212,9 +152,6 @@ const openDialog = async (item) => {
 
 var items = 10;
 const onLoad = async (index, done) => {
-  const start = Object.keys(chats.value).length;
-  console.log(start, chats.value);
-
   const { data, respond } = await $q.bex.send("getChats", {
     key: null,
     all: false,
@@ -242,6 +179,7 @@ const filterFn = (val, update, abort) => {
 
   if (val === "") {
     update(() => {
+      // eslint-disable-next-line no-self-assign
       collOptions.value = collOptions.value;
 
       // here you have access to "ref" which
@@ -255,13 +193,29 @@ const filterFn = (val, update, abort) => {
 
 const addItemToCollection = async () => {
   if (selectedItem.value != undefined) {
-    const { data, respond } = await $q.bex.send("addTocollection", {
+    const { key } = selectedItem.value;
+    const { data: singleChat } = await $q.bex.send("getSingleChat", {
+      key: key,
+    });
+
+    const set = new Set();
+
+    Array.from(singleChat["associatedCollections"]).forEach((value) => {
+      set.add(value);
+    });
+    set.add(selectedCollection.value);
+    singleChat["associatedCollections"] = set;
+
+    const { data } = await $q.bex.send("addTocollection", {
       itemData: selectedItem.value,
       collectionName: selectedCollection.value,
     });
 
     const { error, msg } = data;
+    // eslint-disable-next-line no-constant-condition
     if (!error) {
+      await $q.bex.send("saveChats", singleChat);
+
       $q.notify({
         message: "operation  successful ",
         icon: "thumb_up",
@@ -287,12 +241,10 @@ async function getChats() {
   });
   chats.value = res.data;
 
-  console.log(chats.value);
-
   res.respond();
 }
 const getRecent = async () => {
-  const { data, respond } = await $q.bex.send("getRecent");
+  const { data } = await $q.bex.send("getRecent");
   if (data) {
     recentStore.recent = data;
   }

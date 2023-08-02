@@ -1,6 +1,6 @@
 # GPT Chats Manager Browser Extension
 
-GPT Chats Manager is an open-source browser extension built with [Vue](https://vuejs.org/guide/introduction.html#what-is-vue) and the [Quasar](https://quasar.dev/docs) framework that allows you to do more with ChatGPT. To learn more, you can read this blog post on [Medium](#).
+GPT Chats Manager is an open-source browser extension built with [Vue](https://vuejs.org/guide/introduction.html#what-is-vue) and the [Quasar](https://quasar.dev/docs) framework that allows you to do more with ChatGPT. To learn more, you can read this blog post on [Medium](https://medium.com/@pheromkuka49/chatgpt-extension-for-managing-chats-and-exporting-as-pdf-3c77216e181e).
 
 It includes features like:
 

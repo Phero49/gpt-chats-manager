@@ -68,11 +68,7 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       const regex = new RegExp("https://chat\\.openai\\.com/c/[a-zA-Z0-9-]+");
 
 
-      console.log(sender.origin === "https://chat.openai.com",
-        sender.url,
-        regex.test(sender.url)
-        ,
-        !sender.url.includes("?model=text-davinci-002-render-sha"))
+
       if (
         sender.origin === "https://chat.openai.com" &&
         regex.test(sender.url) &&
@@ -114,10 +110,8 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       }
       else {
         await bridge.send("get_chat", null)
-        console.log("something wrong with url")
       }
     } catch (error) {
-      console.log(error)
       await bridge.send("get_chat", null)
 
     }
@@ -189,7 +183,6 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     const { key } = data
     const database = new db(myCollections.folders)
     const results = await database.getOne(key)
-    console.log(results)
     respond(results)
 
   })
@@ -230,7 +223,6 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
     const database = new db('my_chats')
     const { key } = data
     const results = await database.getOne(key)
-    console.log("stuck")
     respond(results)
 
   })

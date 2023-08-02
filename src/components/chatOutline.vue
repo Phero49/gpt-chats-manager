@@ -17,7 +17,7 @@
   </q-card-section>
 
   <q-scroll-area class="fit">
-    <q-list>
+    <q-list style="width: 300px">
       <div
         id="container"
         @click="
