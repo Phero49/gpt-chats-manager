@@ -13,6 +13,9 @@ chrome.runtime.onInstalled.addListener(() => {
   })
 
 })
+
+
+
 chrome.action.onClicked.addListener((tab) => {
   // Opens our extension in a new browser window.
   // Only if a popup isn't defined in the manifest.
@@ -62,11 +65,10 @@ chrome.action.onClicked.addListener((tab) => {
 
 export default bexBackground((bridge /* , allActiveConnections */) => {
 
+  async function processChat(message, sender) {
 
-  chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     try {
       const regex = new RegExp("https://chat\\.openai\\.com/c/[a-zA-Z0-9-]+");
-
 
 
       if (
@@ -74,9 +76,9 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
         regex.test(sender.url) &&
         sender.url.includes("?model=text-davinci-002-render-sha") === false
       ) {
-        const title = sender.tab.title
-        const chat_url = sender.tab.url
-        const chat_data = request.data
+        const title = sender.title
+        const chat_url = sender.url
+        const chat_data = message
         var askedQuestions = []
         var groups = []
         var chatData = []
@@ -105,8 +107,8 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
           }
         }
 
+        console.log({ askedQuestions: askedQuestions, chat: chatData, title: title, chat_url: chat_url })
         await bridge.send("get_chat", { askedQuestions: askedQuestions, chat: chatData, title: title, chat_url: chat_url })
-        sendResponse(true)
       }
       else {
         await bridge.send("get_chat", null)
@@ -115,7 +117,49 @@ export default bexBackground((bridge /* , allActiveConnections */) => {
       await bridge.send("get_chat", null)
 
     }
-  });
+  } chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('www/index.html')
+    }, async (/* newTab */) => {
+
+      //    bridge.send("recived", { message: message, sender: sender })
+      setTimeout(() => {
+        sendResponse(true)
+        processChat(message, sender)
+      }, 1000)
+
+
+    })
+
+  })
+
+
+
+  bridge.on('ok', ({ respond, data }) => {
+    const message = data['messege']
+    const sender = data['sender']
+
+
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('www/index.html')
+    }, async (/* newTab */) => {
+
+      setTimeout(() => {
+        processChat(message, sender)
+        respond()
+      }, 1000)
+
+      console.log(data)
+
+      //    bridge.send("recived", { message: message, sender: sender })
+
+
+    })
+
+
+  })
+
 
 
   bridge.on('createCollection', async ({ data, respond }) => {
