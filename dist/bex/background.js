@@ -14131,13 +14131,13 @@
     });
   });
   var background_default = (0, import_wrappers.bexBackground)((bridge) => {
-    chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
+    async function processChat(message, sender) {
       try {
         const regex = new RegExp("https://chat\\.openai\\.com/c/[a-zA-Z0-9-]+");
         if (sender.origin === "https://chat.openai.com" && regex.test(sender.url) && sender.url.includes("?model=text-davinci-002-render-sha") === false) {
-          const title = sender.tab.title;
-          const chat_url = sender.tab.url;
-          const chat_data = request.data;
+          const title = sender.title;
+          const chat_url = sender.url;
+          const chat_data = message;
           var askedQuestions = [];
           var groups = [];
           var chatData = [];
@@ -14158,14 +14158,37 @@
               groups = [];
             }
           }
+          console.log({ askedQuestions, chat: chatData, title, chat_url });
           await bridge.send("get_chat", { askedQuestions, chat: chatData, title, chat_url });
-          sendResponse(true);
         } else {
           await bridge.send("get_chat", null);
         }
       } catch (error) {
         await bridge.send("get_chat", null);
       }
+    }
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL("www/index.html")
+      }, async () => {
+        setTimeout(() => {
+          sendResponse(true);
+          processChat(message, sender);
+        }, 1e3);
+      });
+    });
+    bridge.on("ok", ({ respond, data: data2 }) => {
+      const message = data2["messege"];
+      const sender = data2["sender"];
+      chrome.tabs.create({
+        url: chrome.runtime.getURL("www/index.html")
+      }, async () => {
+        setTimeout(() => {
+          processChat(message, sender);
+          respond();
+        }, 1e3);
+        console.log(data2);
+      });
     });
     bridge.on("createCollection", async ({ data: data2, respond }) => {
       const { collectionName } = data2;

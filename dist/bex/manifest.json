@@ -14,12 +14,6 @@
   "action": {
     "default_title": "gpt-chats-manager"
   },
-  "file_system_provider_capabilities": {
-    "configurable": true,
-    "watchable": false,
-    "multiple_mounts": true,
-    "source": "device"
-  },
   "background": {
     "service_worker": "background.js"
   },
@@ -38,20 +32,14 @@
   ],
   "content_security_policy": {
     "script-src": [
-      "'self'",
-      "https://apis.google.com"
+      "'self','https://chat.openai.com/*'"
     ],
     "extension_pages": "script-src 'self' ; object-src 'self';",
-    "sandbox": "sandbox allow-scripts allow-forms",
-    "host_permissions": [
-      "https://apis.google.com/*"
-    ]
+    "sandbox": "sandbox allow-scripts allow-forms"
   },
-  "sandbox": {
-    "pages": [
-      "/sandbox.html"
-    ]
-  },
+  "host_permissions": [
+    "https://chat.openai.com/*"
+  ],
   "externally_connectable": {
     "matches": [
       "https://chat.openai.com/*"

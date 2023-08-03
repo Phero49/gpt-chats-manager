@@ -628,7 +628,69 @@
 
   // src-bex/my-content-script.js
   var import_wrappers = __toESM(require_wrappers());
-  var my_content_script_default = (0, import_wrappers.bexContent)(() => {
+  var my_content_script_default = (0, import_wrappers.bexContent)((bridge2) => {
+    function getExtensionId() {
+      return chrome.runtime.id;
+    }
+    console.log(getExtensionId());
+    const exportBtn = () => {
+      setTimeout(async () => {
+        const divGroup = document.querySelector("div.group");
+        if (divGroup) {
+          const element = document.querySelector("div.group");
+          if (element) {
+            const elements = document.querySelectorAll(".flex-grow.flex-col.gap-3");
+            var elementString = [];
+            elements.forEach((el) => {
+              elementString.push(el.innerHTML);
+            });
+            chrome.runtime.connect();
+            const sender = {
+              origin: window.location.origin,
+              url: window.location.href,
+              title: document.title
+            };
+            bridge2.send("ok", { sender, messege: elementString });
+            console.log(elementString, "sent");
+          }
+        }
+      }, 1e3);
+    };
+    const observer = new MutationObserver((mutations) => {
+      const customBtn = document.body.querySelector("#exportchat");
+      if (customBtn != null) {
+        observer.disconnect();
+        customBtn.addEventListener("click", () => {
+          exportBtn();
+        });
+      } else {
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+      for (const mutation of mutations) {
+        const { target } = mutation;
+        const getbtn = target.querySelector(".border-t");
+        if (getbtn != null) {
+          if (getbtn.parentElement != null || getbtn.parentElement != void 0) {
+            if (customBtn === null) {
+              let btn = `<button id="exportchat" style="
+            color:white;
+            background: #0052D4;  /* fallback for old browsers */
+            background: -webkit-linear-gradient(to right, #6FB1FC, #4364F7, #0052D4);  /* Chrome 10-25, Safari 5.1-6 */
+            background: linear-gradient(to right, #6FB1FC, #4364F7, #0052D4); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+                        
+            "              class="btn bg-primary ml-4 relative text-white btn-neutral border-0 md:border">
+      Export chat
+    </button>`;
+              const parser = new DOMParser();
+              const parsedEl = parser.parseFromString(btn, "text/html");
+              getbtn.parentElement.appendChild(parsedEl.querySelector("button"));
+              break;
+            }
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   });
 
   // .quasar/bex/entry-content-script-my-content-script.js

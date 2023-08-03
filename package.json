@@ -1,6 +1,6 @@
 {
   "name": "gpt-chats-manager",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a chrome extension for managing chatGpt chats it allows you to download your chats as pdfs ",
   "productName": "gpt-chats-manager",
   "author": "pemphero mkuka <pheromkuka49@gmail.com>",

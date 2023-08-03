@@ -629,29 +629,6 @@
   // src-bex/dom.js
   var import_wrappers = __toESM(require_wrappers());
   var dom_default = (0, import_wrappers.bexDom)(() => {
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        const { target } = mutation;
-        const getbtn = target.querySelector(".border-t");
-        const customBtn = document.body.querySelector("#exportchat");
-        if (getbtn != null) {
-          if (getbtn.parentElement != null || getbtn.parentElement != void 0) {
-            if (customBtn === null) {
-              let btn = `<button id="exportchat" class="btn ml-4 relative text-green btn-neutral border-0 md:border">
-      Export chat
-    </button>`;
-              const parser = new DOMParser();
-              const parsedEl = parser.parseFromString(btn, "text/html");
-              parsedEl.addEventListener("click", () => {
-              });
-              getbtn.parentElement.appendChild(parsedEl.querySelector("button"));
-              break;
-            }
-          }
-        }
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
   });
 
   // .quasar/bex/entry-dom.js
