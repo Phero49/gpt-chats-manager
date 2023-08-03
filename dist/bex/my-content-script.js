@@ -629,10 +629,6 @@
   // src-bex/my-content-script.js
   var import_wrappers = __toESM(require_wrappers());
   var my_content_script_default = (0, import_wrappers.bexContent)((bridge2) => {
-    function getExtensionId() {
-      return chrome.runtime.id;
-    }
-    console.log(getExtensionId());
     const exportBtn = () => {
       setTimeout(async () => {
         const divGroup = document.querySelector("div.group");
@@ -651,7 +647,6 @@
               title: document.title
             };
             bridge2.send("ok", { sender, messege: elementString });
-            console.log(elementString, "sent");
           }
         }
       }, 1e3);

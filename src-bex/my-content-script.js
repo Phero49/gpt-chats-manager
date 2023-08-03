@@ -10,10 +10,6 @@ export default bexContent((bridge) => {
 
 
 
-  function getExtensionId() {
-    return chrome.runtime.id;
-  }
-  console.log(getExtensionId())
 
 
   const exportBtn = () => {
@@ -45,7 +41,6 @@ export default bexContent((bridge) => {
           }
           bridge.send("ok", { sender: sender, messege: elementString })
 
-          console.log(elementString, "sent")
         }
 
 
