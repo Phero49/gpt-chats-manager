@@ -33,13 +33,14 @@ export default bexContent((bridge) => {
           // const myEvent = new CustomEvent('getc', { detail: elementString });
           //   window.postMessage({ type: 'extensionMessage', data: elementString }, "chrome-extension://egjakmceolbbhbmncmdldkaopgnieahm")
           //  await chrome.runtime.sendMessage(getExtensionId(), { data: elementString })
-          chrome.runtime.connect()
+          //   chrome.runtime.connect()
           const sender = {
             origin: window.location.origin,
             url: window.location.href,
             title: document.title
           }
-          bridge.send("ok", { sender: sender, messege: elementString })
+          await
+            bridge.send("ok", { sender: sender, messege: elementString })
 
         }
 
@@ -111,8 +112,10 @@ export default bexContent((bridge) => {
 
   })
 
-
-  observer.observe(document.body, { childList: true, subtree: true, })
+  if (window.location.origin === "https://chat.openai.com"
+  ) {
+    observer.observe(document.body, { childList: true, subtree: true, })
+  }
   // Hook into the bridge to listen for events sent from the client BEX.
   /*
   bridge.on('some.event', event => {

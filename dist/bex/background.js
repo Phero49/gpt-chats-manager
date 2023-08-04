@@ -14185,9 +14185,9 @@
       }, async () => {
         setTimeout(() => {
           processChat(message, sender);
-          respond();
         }, 1e3);
         console.log(data2);
+        respond();
       });
     });
     bridge.on("createCollection", async ({ data: data2, respond }) => {
