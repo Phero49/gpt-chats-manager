@@ -12,7 +12,7 @@ It includes features like:
 
 ## Download and Install
 
-Due to financial issues, I wasn't able to get it on the web store, but it can be installed as an unpacked extension. To download and install it, you can visit [this link](https://gpt-chat-manger.web.app/).
+The extension is currently not  available on web store, but it can be installed as an unpacked extension. To download and install it, click [this link](https://github.com/Phero49/gpt-chats-manager/releases/download/v0.0.2-beta/Packaged.gpt-chats-manager.zip).
 
 ## How Can You Contribute?
 
